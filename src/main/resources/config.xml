@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config>
+    <server>
+        <dataport>6666</dataport>
+        <controlport>7777</controlport>
+    </server>
+    <database>
+        <ip>127.0.0.1</ip>
+        <port>3306</port>
+        <name>database</name>
+        <username>root</username>
+        <password>password</password>
+    </database>
+</config>
