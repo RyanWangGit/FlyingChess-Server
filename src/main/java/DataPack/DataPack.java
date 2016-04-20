@@ -22,6 +22,7 @@ public class DataPack {
     public DataPack(int command, Date date, boolean isSuccessful, List<String> msgList){
         this.command = command;
         this.date = date;
+        this.isSuccessful = isSuccessful;
         this.msgList = msgList;
     }
 
