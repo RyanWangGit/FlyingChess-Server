@@ -6,7 +6,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,17 +32,52 @@ public class Database {
             Class.forName("com.mysql.jdbc.Driver");
             conn = DriverManager.getConnection(databaseUrl, USER_NAME, PASSWORD);
             stmt = conn.createStatement();
+            logger.info("Database connected.");
         } catch(Exception e){
             logger.catching(e);
         }
     }
 
-    public static List<String> getUserById(int id){
+    public static List<String> getUser(int id){
+        String sql = "SELECT * FROM Users WHERE ID='" + String.valueOf(id) + "'";
+        try{
+            ResultSet result = stmt.executeQuery(sql);
+            if(!result.next()){
+                return null;
+            }
+            else{
+                List<String> userInfo = new ArrayList<>();
+                userInfo.add(result.getString("ID"));
+                userInfo.add(result.getString("Name"));
+                userInfo.add(result.getString("PasswordMD5"));
+                userInfo.add(result.getString("Points"));
+                return userInfo;
+            }
+        } catch(Exception e){
+            logger.catching(e);
+        }
         return null;
     }
 
 
-    public static List<String> getUserByName(String username){
+    public static List<String> getUser(String username){
+        String sql = "SELECT * FROM Users WHERE Name='" + username + "'";
+        try{
+            ResultSet result = stmt.executeQuery(sql);
+            if(!result.next()){
+                return null;
+            }
+            else{
+                List<String> userInfo = new ArrayList<>();
+                userInfo.add(result.getString("ID"));
+                userInfo.add(result.getString("Name"));
+                userInfo.add(result.getString("PasswordMD5"));
+                userInfo.add(result.getString("Points"));
+                return userInfo;
+            }
+        } catch(Exception e){
+            logger.catching(e);
+        }
         return null;
     }
 
@@ -52,7 +89,19 @@ public class Database {
      * @return The index of the user.
      */
     public static Integer addUser(String username, String passwordMD5){
-        return 0;
+        String insertSql = "INSERT INTO Users(Name,PasswordMD5) VALUES('" + username + "','" + passwordMD5 + "')";
+        String querySql = "SELECT ID FROM Users WHERE Name='" + username + "'";
+        try{
+            stmt.executeUpdate(insertSql);
+            ResultSet result = stmt.executeQuery(querySql);
+            if(!result.next())
+                return -1;
+            else
+                return result.getInt("ID");
+        } catch(Exception e){
+            logger.catching(e);
+        }
+        return -1;
     }
 
 }
