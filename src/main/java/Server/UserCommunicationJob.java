@@ -66,9 +66,9 @@ class UserCommunicationJob implements Runnable {
                 }
                 case DataPack.LOGIN:{
                     String username = dataPack.getMessage(0);
-                    String passwordMD5 = dataPack.getMessage(1);
+                    String passwordMD5 = dataPack.getMessage(1).toUpperCase();
 
-                    List<String> userInfo = Database.getUserByName(username);
+                    List<String> userInfo = Database.getUser(username);
                     if(userInfo == null){
                         send(new DataPack(DataPack.LOGIN, new Date(), false, null));
                     }
@@ -86,9 +86,9 @@ class UserCommunicationJob implements Runnable {
                 }
                 case DataPack.REGISTER:{
                     String username = dataPack.getMessage(0);
-                    String passwordMD5 = dataPack.getMessage(1);
+                    String passwordMD5 = dataPack.getMessage(1).toUpperCase();
 
-                    List<String> userInfo = Database.getUserByName(username);
+                    List<String> userInfo = Database.getUser(username);
                     if(userInfo == null){
                         int userIndex = Database.addUser(username, passwordMD5);
                         List<String> msgList = new ArrayList<>();
@@ -102,6 +102,7 @@ class UserCommunicationJob implements Runnable {
                 }
                 case DataPack.LOGOUT:{
                     int userIndex = Integer.valueOf(dataPack.getMessage(0));
+
                     send(new DataPack(DataPack.LOGOUT, new Date(), true, null));
                     return;
                 }
