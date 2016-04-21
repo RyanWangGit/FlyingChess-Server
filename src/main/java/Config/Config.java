@@ -62,4 +62,22 @@ public interface Config {
      * @return The port the server controller listens on.
      */
     int getControlPort();
+
+    /**
+     * Returns the path of the keystore file.
+     * @return The path of the keystore file.
+     */
+    String getKeyStorePath();
+
+    /**
+     * Returns the password of the keystore.
+     * @return The password of the keystore.
+     */
+    String getKeyStorePassword();
+
+    /**
+     * Returns the password of the key
+     * @return The password of the key.
+     */
+    String getKeyPassword();
 }
