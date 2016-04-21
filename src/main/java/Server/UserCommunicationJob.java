@@ -145,10 +145,14 @@ class UserCommunicationJob implements Runnable {
                             List<String> msgList = new ArrayList<>();
                             msgList.add(String.valueOf(position));
                             for(Integer roomUserId : room.getUsers()){
-                                // add user id
-                                msgList.add(String.valueOf(roomUserId));
-                                // add user name
-                                msgList.add(Database.getUser(roomUserId).get(1));
+                                if(roomUserId != userId){
+                                    // add user id
+                                    msgList.add(String.valueOf(roomUserId));
+                                    // add user name
+                                    msgList.add(Database.getUser(roomUserId).get(1));
+                                    // add user position
+                                    msgList.add(String.valueOf(room.getUserPosition(roomUserId)));
+                                }
                             }
                             send(new DataPack(DataPack.ROOM_ENTER, new Date(), true, msgList));
 
@@ -177,7 +181,7 @@ class UserCommunicationJob implements Runnable {
                         // add number of players in the room
                         msgList.add(String.valueOf(room.getUsers().size()));
                     }
-                    send(new DataPack(DataPack.LOGIN, new Date(), true, msgList));
+                    send(new DataPack(DataPack.ROOM_LOOKUP, new Date(), true, msgList));
                     return;
                 }
                 case DataPack.ROOM_EXIT:{

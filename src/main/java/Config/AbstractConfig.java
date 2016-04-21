@@ -14,6 +14,9 @@ public abstract class AbstractConfig implements Config {
     protected String databaseName = "database";
     protected String databaseUser = "root";
     protected String databasePassword = "password";
+    protected String keystorePath = "./keystore.keystore";
+    protected String keystorePass = "password";
+    protected String keyPass = "password";
 
     /**
      * Default empty constructor
@@ -99,4 +102,22 @@ public abstract class AbstractConfig implements Config {
     public int getControlPort() {
         return controlPort;
     }
+
+    /**
+     * Returns the path of the keystore file.
+     * @return The path of the keystore file.
+     */
+    public String getKeyStorePath() { return keystorePath; }
+
+    /**
+     * Returns the password of the keystore.
+     * @return The password of the keystore.
+     */
+    public String getKeyStorePassword() { return keystorePass; }
+
+    /**
+     * Returns the password of the key
+     * @return The password of the key.
+     */
+    public String getKeyPassword() { return keyPass; }
 }

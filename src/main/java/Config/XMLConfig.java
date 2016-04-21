@@ -74,6 +74,20 @@ public class XMLConfig extends AbstractConfig {
         }
     }
 
+    private void loadSSLConfig(Element node){
+        logger.info("Loading SSL configurations.");
+        String keystorePath = node.elementText("keystore");
+        String keystorePass = node.elementText("keystorepass");
+        String keyPass = node.elementText("keypass");
+
+        if(keystorePath != null)
+            this.keystorePath = keystorePath;
+        if(keystorePass != null)
+            this.keystorePass = keystorePass;
+        if(keyPass != null)
+            this.keyPass = keyPass;
+    }
+
     /**
      * Load from external file.
      * @param file External file.
@@ -88,10 +102,12 @@ public class XMLConfig extends AbstractConfig {
             // get config elements
             Element serverElement = node.element("server");
             Element databaseElement = node.element("database");
+            Element sslElement = node.element("ssl");
 
             // load from elements
             loadServerConfig(serverElement);
             loadDatabaseConfig(databaseElement);
+            loadSSLConfig(sslElement);
 
             logger.info("Configurations loaded.");
         } catch (DocumentException e) {
