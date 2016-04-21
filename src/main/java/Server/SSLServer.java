@@ -2,6 +2,7 @@ package Server;
 
 import Config.Config;
 import Database.Database;
+import Room.Room;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -12,6 +13,7 @@ import javax.net.ssl.SSLServerSocketFactory;
 import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyStore;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,13 +25,16 @@ public class SSLServer implements Server {
     private Config config = null;
     private ExecutorService socketCommunicationExecutors = null;
     private ConcurrentHashMap<Integer, UserCommunicationJob> onlineHash = null;
+    private ConcurrentHashMap<Integer, Room> roomHash = null;
+    private int nextRoomId = 0;
 
     public SSLServer(Config config){
         // initialize database
         Database.initialize(config);
         this.config = config;
         this.socketCommunicationExecutors = Executors.newCachedThreadPool();
-        this.onlineHash = new ConcurrentHashMap<Integer, UserCommunicationJob>(1000, 0.75f);
+        this.onlineHash = new ConcurrentHashMap<>(1000, 0.75f);
+        this.roomHash = new ConcurrentHashMap<>(100, 0.75f);
     }
 
     public void start(){
@@ -99,5 +104,24 @@ public class SSLServer implements Server {
             curJob.shutdown();
         }
         this.onlineHash.put(id, job);
+    }
+
+    public void removeUserCommunicationJob(Integer id){
+        this.onlineHash.remove(id);
+    }
+
+    public Collection<Room> getRooms(){
+        return this.roomHash.values();
+    }
+
+    public Room getRoom(Integer roomId){
+        return this.roomHash.get(roomId);
+    }
+
+    public synchronized int addRoom(String roomName, Integer hostId){
+        Room room = new Room(nextRoomId, roomName, hostId);
+        this.roomHash.put(nextRoomId, room);
+        nextRoomId++;
+        return nextRoomId - 1;
     }
 }
