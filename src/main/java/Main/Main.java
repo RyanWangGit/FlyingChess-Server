@@ -17,7 +17,9 @@ public class Main {
     public static void main(String[] args){
         logger.info("Setting up server");
         if(args.length < 1){
-            logger.info("Too few arguments, config files ");
+            logger.info("Too few arguments, try to find config.xml in current directory.");
+            args = new String[1];
+            args[0] = "./config.xml";
         }
         serverConfig = new XMLConfig(new File(args[0]));
         server = new SSLServer(serverConfig);
