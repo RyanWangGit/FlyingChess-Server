@@ -10,6 +10,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyStore;
@@ -65,15 +66,15 @@ public class SSLServer implements Server {
         SSLServerSocket socket = null;
 
         // key name and password
-        InputStream keyNameStream = SSLServer.class.getClassLoader().getResourceAsStream("chaton.keystore");
-        char[] keyStorePass = "ryanwang@hust".toCharArray();
-        char[] keyPassword = "ryanwang@hust".toCharArray();
+        InputStream keyNameStream = new FileInputStream(config.getKeyStorePath());
+        char[] keyStorePass = config.getKeyStorePassword().toCharArray();
+        char[] keyPassword = config.getKeyPassword().toCharArray();
 
         KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(keyNameStream, keyStorePass);
 
         // create key manager
-        KeyManagerFactory kmf=KeyManagerFactory.getInstance("SunX509");
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
         kmf.init(ks, keyPassword);
 
         // create ssl context
