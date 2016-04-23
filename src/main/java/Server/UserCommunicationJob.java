@@ -14,10 +14,12 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * Created by Ryan on 16/4/12.
@@ -30,12 +32,15 @@ class UserCommunicationJob implements Runnable {
     private SSLServer parent = null;
     private Gson dataPackGson = new GsonBuilder().setDateFormat("yyyy-MM-dd hh:mm:ss").create();
     private int blockSize = 0;
+    private LinkedBlockingDeque<DataPack> dataPackQueue = null;
 
     public UserCommunicationJob(SSLServer parent, Socket sock) throws IOException{
         this.sock = sock;
         this.parent = parent;
         this.os = new DataOutputStream(sock.getOutputStream());
         this.is = new DataInputStream(sock.getInputStream());
+        this.dataPackQueue = new LinkedBlockingDeque<>(100);
+        this.sock.setSoTimeout(100);
     }
 
     public void run(){
@@ -44,7 +49,12 @@ class UserCommunicationJob implements Runnable {
             // segment data into json strings
 
             while(true){
-                processDataPack(receive());
+                try{
+                    processDataPack(receive());
+                } catch(SocketTimeoutException e){
+                    // do nothing
+                }
+
             }
 
         } catch(EOFException e){
@@ -58,7 +68,7 @@ class UserCommunicationJob implements Runnable {
         }
     }
 
-    private void processDataPack(DataPack dataPack){
+    private void processDataPack(DataPack dataPack) throws SocketTimeoutException{
         try{
             switch(dataPack.getCommand()){
                 case DataPack.INVALID:{
@@ -71,7 +81,7 @@ class UserCommunicationJob implements Runnable {
 
                     List<String> userInfo = Database.getUser(username);
                     if(userInfo == null){
-                        send(new DataPack(DataPack.LOGIN, new Date(), false, null));
+                        sendNow(new DataPack(DataPack.LOGIN, new Date(), false, null));
                     }
                     else{
                         // login successful
@@ -87,7 +97,7 @@ class UserCommunicationJob implements Runnable {
                                 // add number of players in the room
                                 msgList.add(String.valueOf(room.getUsers().size()));
                             }
-                            send(new DataPack(DataPack.LOGIN, new Date(), true, msgList));
+                            sendNow(new DataPack(DataPack.LOGIN, new Date(), true, msgList));
                             parent.addUserCommunicationJob(Integer.valueOf(userInfo.get(0)), this);
                         }
                     }
@@ -102,17 +112,17 @@ class UserCommunicationJob implements Runnable {
                         int userIndex = Database.addUser(username, passwordMD5);
                         List<String> msgList = new ArrayList<>();
                         msgList.add(String.valueOf(userIndex));
-                        send(new DataPack(DataPack.REGISTER, new Date(), true, msgList));
+                        sendNow(new DataPack(DataPack.REGISTER, new Date(), true, msgList));
                     }
                     else{
-                        send(new DataPack(DataPack.REGISTER, new Date(), false, null));
+                        sendNow(new DataPack(DataPack.REGISTER, new Date(), false, null));
                     }
                     return;
                 }
                 case DataPack.LOGOUT:{
                     int userIndex = Integer.valueOf(dataPack.getMessage(0));
                     parent.removeUserCommunicationJob(userIndex);
-                    send(new DataPack(DataPack.LOGOUT, new Date(), true, null));
+                    sendNow(new DataPack(DataPack.LOGOUT, new Date(), true, null));
                     return;
                 }
                 case DataPack.ROOM_CREATE:{
@@ -122,7 +132,7 @@ class UserCommunicationJob implements Runnable {
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(roomId));
                     logger.info("Room created: " + roomId + " " + roomName);
-                    send(new DataPack(DataPack.ROOM_CREATE, new Date(), true, msgList));
+                    sendNow(new DataPack(DataPack.ROOM_CREATE, new Date(), true, msgList));
                     return;
                 }
                 case DataPack.ROOM_ENTER:{
@@ -130,18 +140,18 @@ class UserCommunicationJob implements Runnable {
                     Integer roomId = Integer.valueOf(dataPack.getMessage(1));
                     Room room = parent.getRoom(roomId);
                     if(room == null){
-                        send(new DataPack(DataPack.ROOM_ENTER, new Date(), false, null));
+                        sendNow(new DataPack(DataPack.ROOM_ENTER, new Date(), false, null));
                     }
                     else{
                         // if room has reached its limit
                         if(room.getUsers().size() == 4){
-                            send(new DataPack(DataPack.ROOM_ENTER, new Date(), false, null));
+                            sendNow(new DataPack(DataPack.ROOM_ENTER, new Date(), false, null));
                         }
                         else{
                             // add user into room
                             int position = room.addUser(userId);
 
-                            // send room user info back
+                            // sendNow room user info back
                             List<String> msgList = new ArrayList<>();
                             msgList.add(String.valueOf(position));
                             for(Integer roomUserId : room.getUsers()){
@@ -154,9 +164,9 @@ class UserCommunicationJob implements Runnable {
                                     msgList.add(String.valueOf(room.getUserPosition(roomUserId)));
                                 }
                             }
-                            send(new DataPack(DataPack.ROOM_ENTER, new Date(), true, msgList));
+                            sendNow(new DataPack(DataPack.ROOM_ENTER, new Date(), true, msgList));
 
-                            // send new user info to other users
+                            // sendNow new user info to other users
                             msgList.clear();
                             msgList.add(String.valueOf(userId));
                             List<String> userInfo = Database.getUser(userId);
@@ -181,7 +191,7 @@ class UserCommunicationJob implements Runnable {
                         // add number of players in the room
                         msgList.add(String.valueOf(room.getUsers().size()));
                     }
-                    send(new DataPack(DataPack.ROOM_LOOKUP, new Date(), true, msgList));
+                    sendNow(new DataPack(DataPack.ROOM_LOOKUP, new Date(), true, msgList));
                     return;
                 }
                 case DataPack.ROOM_EXIT:{
@@ -189,11 +199,11 @@ class UserCommunicationJob implements Runnable {
                     Integer roomId = Integer.valueOf(dataPack.getMessage(1));
                     Room room = parent.getRoom(roomId);
                     room.removeUser(userId);
-                    send(new DataPack(DataPack.ROOM_EXIT, new Date(), true, null));
+                    sendNow(new DataPack(DataPack.ROOM_EXIT, new Date(), true, null));
 
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(userId));
-                    // send user left message to other users
+                    // sendNow user left message to other users
                     for(Integer roomUserId : room.getUsers()){
                         parent.getUserCommunicationJob(roomUserId)
                                 .send(new DataPack(DataPack.ROOM_USER_LEFT, new Date(), true, msgList));
@@ -205,7 +215,7 @@ class UserCommunicationJob implements Runnable {
                     Integer roomId = Integer.valueOf(dataPack.getMessage(1));
                     Room room = parent.getRoom(roomId);
 
-                    // send out game start signal and positions info to the users
+                    // sendNow out game start signal and positions info to the users
                     for(Integer roomUserId : room.getUsers()) {
                         parent.getUserCommunicationJob(roomUserId)
                                 .send(new DataPack(DataPack.GAME_START, new Date(), true, null));
@@ -224,7 +234,7 @@ class UserCommunicationJob implements Runnable {
                     // simply forward the datapack to the users in the same room
                     for(Integer roomUserId : room.getUsers()) {
                         parent.getUserCommunicationJob(roomUserId)
-                                .send(dataPack);
+                                .sendNow(dataPack);
                     }
                     return;
                 }
@@ -257,7 +267,45 @@ class UserCommunicationJob implements Runnable {
         return dataPackGson.fromJson(json, DataPack.class);
     }
 
-    public synchronized void send(DataPack dataPack) {
+    /**
+     * Queue the datapack into the messaging queue, which will be sent out afterwards.
+     * @param dataPack The datapack to be queued.
+     */
+    public void send(DataPack dataPack) {
+        try{
+            this.dataPackQueue.put(dataPack);
+        } catch(InterruptedException e){
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Send out all available queued datapacks.
+     */
+    private void sendQueuedDataPack(){
+        List<DataPack> dataPackList = new ArrayList<>();
+        this.dataPackQueue.drainTo(dataPackList);
+        // send out all available datapacks.
+        try{
+            for(DataPack dataPack : dataPackList){
+                byte[] sendBytes = dataPackGson.toJson(dataPack, DataPack.class).getBytes(Charset.forName("UTF-8"));
+                int bytesSize = sendBytes.length;
+
+                this.os.writeInt(bytesSize);
+                this.os.write(sendBytes);
+            }
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * This method sends out the datapack immediately, which does not
+     * queue into the messaging queue and not thread safe. Invoke with
+     * caution.
+     * @param dataPack The datapack to be sent.
+     */
+    public void sendNow(DataPack dataPack) {
         try{
             byte[] sendBytes = dataPackGson.toJson(dataPack, DataPack.class).getBytes(Charset.forName("UTF-8"));
             int bytesSize = sendBytes.length;
