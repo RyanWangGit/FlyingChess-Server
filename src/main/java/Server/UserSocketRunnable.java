@@ -89,14 +89,6 @@ class UserSocketRunnable implements Runnable {
                             List<String> msgList = new ArrayList<>();
                             msgList.add(userInfo.get(0));
                             msgList.add(userInfo.get(3));
-                            for(Room room : parent.getRooms()){
-                                // add room id
-                                msgList.add(String.valueOf(room.getId()));
-                                // add room name
-                                msgList.add(room.getName());
-                                // add number of players in the room
-                                msgList.add(String.valueOf(room.getUsers().size()));
-                            }
                             sendNow(new DataPack(DataPack.LOGIN, new Date(), true, msgList));
                             parent.addUserSocketRunnable(Integer.valueOf(userInfo.get(0)), this);
                         }
