@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyStore;
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,18 +25,18 @@ public class SSLServer implements Server {
     private static Logger logger = LogManager.getLogger(SSLServer.class.getName());
     private SSLServerSocket server = null;
     private Config config = null;
-    private ExecutorService socketCommunicationExecutors = null;
-    private ConcurrentHashMap<Integer, UserSocketRunnable> onlineHash = null;
-    private ConcurrentHashMap<Integer, Room> roomHash = null;
+    private ExecutorService userSocketExecutor = null;
+    private ConcurrentHashMap<Integer, UserSocketRunnable> onlineUserSockets = null;
+    private Map<Integer, Room> roomMap = null;
     private int nextRoomId = 0;
 
     public SSLServer(Config config){
         // initialize database
         Database.initialize(config);
         this.config = config;
-        this.socketCommunicationExecutors = Executors.newCachedThreadPool();
-        this.onlineHash = new ConcurrentHashMap<>(1000, 0.75f);
-        this.roomHash = new ConcurrentHashMap<>(100, 0.75f);
+        this.userSocketExecutor = Executors.newCachedThreadPool();
+        this.onlineUserSockets = new ConcurrentHashMap<>(1000, 0.75f);
+        this.roomMap = new ConcurrentHashMap<>(100, 0.75f);
     }
 
     public void start(){
@@ -49,7 +50,7 @@ public class SSLServer implements Server {
                 Socket sock = server.accept();
                 logger.info("Accepted new socket " + sock.getRemoteSocketAddress().toString());
                 Runnable socketJob = new UserSocketRunnable(this, sock);
-                this.socketCommunicationExecutors.submit(socketJob);
+                this.userSocketExecutor.submit(socketJob);
             }
 
         } catch (Exception e){
@@ -95,33 +96,33 @@ public class SSLServer implements Server {
     }
 
     public UserSocketRunnable getUserSocketRunnable(Integer id){
-        return this.onlineHash.get(id);
+        return this.onlineUserSockets.get(id);
     }
 
     public void addUserSocketRunnable (Integer id, UserSocketRunnable job){
-        UserSocketRunnable currentRunnable = this.onlineHash.get(id);
+        UserSocketRunnable currentRunnable = this.onlineUserSockets.get(id);
         if(currentRunnable != null){
             // close the former socket
             currentRunnable.shutdown();
         }
-        this.onlineHash.put(id, job);
+        this.onlineUserSockets.put(id, job);
     }
 
     public void removeUserCommunicationJob(Integer id){
-        this.onlineHash.remove(id);
+        this.onlineUserSockets.remove(id);
     }
 
     public Collection<Room> getRooms(){
-        return this.roomHash.values();
+        return this.roomMap.values();
     }
 
     public Room getRoom(Integer roomId){
-        return this.roomHash.get(roomId);
+        return this.roomMap.get(roomId);
     }
 
     public synchronized int addRoom(String roomName, Integer hostId){
         Room room = new Room(nextRoomId, roomName, hostId);
-        this.roomHash.put(nextRoomId, room);
+        this.roomMap.put(nextRoomId, room);
         nextRoomId++;
         return nextRoomId - 1;
     }
