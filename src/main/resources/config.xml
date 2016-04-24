@@ -12,7 +12,7 @@
         <password>password</password>
     </database>
     <ssl>
-        <keystore>./flyingchess.keystore</keystore>
+        <keystore>./flyingchess.jks</keystore>
         <keystorepass>password</keystorepass>
         <keypass>password</keypass>
     </ssl>
