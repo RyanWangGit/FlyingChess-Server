@@ -81,7 +81,7 @@ class UserSocketRunnable implements Runnable {
 
                     List<String> userInfo = Database.getUser(username);
                     if(userInfo == null){
-                        sendNow(new DataPack(DataPack.LOGIN, new Date(), false, null));
+                        sendNow(new DataPack(DataPack.LOGIN, false));
                     }
                     else{
                         // login successful
@@ -89,7 +89,7 @@ class UserSocketRunnable implements Runnable {
                             List<String> msgList = new ArrayList<>();
                             msgList.add(userInfo.get(0));
                             msgList.add(userInfo.get(3));
-                            sendNow(new DataPack(DataPack.LOGIN, new Date(), true, msgList));
+                            sendNow(new DataPack(DataPack.LOGIN, true, msgList));
                             parent.addUserSocketRunnable(Integer.valueOf(userInfo.get(0)), this);
                         }
                     }
@@ -104,17 +104,17 @@ class UserSocketRunnable implements Runnable {
                         int userIndex = Database.addUser(username, passwordMD5);
                         List<String> msgList = new ArrayList<>();
                         msgList.add(String.valueOf(userIndex));
-                        sendNow(new DataPack(DataPack.REGISTER, new Date(), true, msgList));
+                        sendNow(new DataPack(DataPack.REGISTER, true, msgList));
                     }
                     else{
-                        sendNow(new DataPack(DataPack.REGISTER, new Date(), false, null));
+                        sendNow(new DataPack(DataPack.REGISTER, false));
                     }
                     return;
                 }
                 case DataPack.LOGOUT:{
                     int userIndex = Integer.valueOf(dataPack.getMessage(0));
                     parent.removeUserCommunicationJob(userIndex);
-                    sendNow(new DataPack(DataPack.LOGOUT, new Date(), true, null));
+                    sendNow(new DataPack(DataPack.LOGOUT, true));
                     return;
                 }
                 case DataPack.ROOM_CREATE:{
@@ -124,7 +124,7 @@ class UserSocketRunnable implements Runnable {
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(roomId));
                     logger.info("Room created: " + roomId + " " + roomName);
-                    sendNow(new DataPack(DataPack.ROOM_CREATE, new Date(), true, msgList));
+                    sendNow(new DataPack(DataPack.ROOM_CREATE, true, msgList));
                     return;
                 }
                 case DataPack.ROOM_ENTER:{
@@ -132,12 +132,12 @@ class UserSocketRunnable implements Runnable {
                     Integer roomId = Integer.valueOf(dataPack.getMessage(1));
                     Room room = parent.getRoom(roomId);
                     if(room == null){
-                        sendNow(new DataPack(DataPack.ROOM_ENTER, new Date(), false, null));
+                        sendNow(new DataPack(DataPack.ROOM_ENTER, false));
                     }
                     else{
                         // if room has reached its limit
                         if(room.getUsers().size() == 4){
-                            sendNow(new DataPack(DataPack.ROOM_ENTER, new Date(), false, null));
+                            sendNow(new DataPack(DataPack.ROOM_ENTER, false));
                         }
                         else{
                             // add user into room
@@ -156,7 +156,7 @@ class UserSocketRunnable implements Runnable {
                                     msgList.add(String.valueOf(room.getUserPosition(roomUserId)));
                                 }
                             }
-                            sendNow(new DataPack(DataPack.ROOM_ENTER, new Date(), true, msgList));
+                            sendNow(new DataPack(DataPack.ROOM_ENTER, true, msgList));
 
                             // sendNow new user info to other users
                             msgList.clear();
@@ -167,7 +167,7 @@ class UserSocketRunnable implements Runnable {
                             msgList.add(String.valueOf(position));
                             for(Integer roomUserId : room.getUsers()){
                                 parent.getUserSocketRunnable(roomUserId)
-                                        .send(new DataPack(DataPack.ROOM_USER_ENTERED, new Date(), true, msgList));
+                                        .send(new DataPack(DataPack.ROOM_USER_ENTERED, true, msgList));
                             }
                         }
                     }
@@ -183,7 +183,7 @@ class UserSocketRunnable implements Runnable {
                         // add number of players in the room
                         msgList.add(String.valueOf(room.getUsers().size()));
                     }
-                    sendNow(new DataPack(DataPack.ROOM_LOOKUP, new Date(), true, msgList));
+                    sendNow(new DataPack(DataPack.ROOM_LOOKUP, true, msgList));
                     return;
                 }
                 case DataPack.ROOM_EXIT:{
@@ -191,14 +191,14 @@ class UserSocketRunnable implements Runnable {
                     Integer roomId = Integer.valueOf(dataPack.getMessage(1));
                     Room room = parent.getRoom(roomId);
                     room.removeUser(userId);
-                    sendNow(new DataPack(DataPack.ROOM_EXIT, new Date(), true, null));
+                    sendNow(new DataPack(DataPack.ROOM_EXIT, true));
 
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(userId));
                     // sendNow user left message to other users
                     for(Integer roomUserId : room.getUsers()){
                         parent.getUserSocketRunnable(roomUserId)
-                                .send(new DataPack(DataPack.ROOM_USER_LEFT, new Date(), true, msgList));
+                                .send(new DataPack(DataPack.ROOM_USER_LEFT, true, msgList));
                     }
                     return;
                 }
@@ -210,7 +210,7 @@ class UserSocketRunnable implements Runnable {
                     // sendNow out game start signal and positions info to the users
                     for(Integer roomUserId : room.getUsers()) {
                         parent.getUserSocketRunnable(roomUserId)
-                                .send(new DataPack(DataPack.GAME_START, new Date(), true, null));
+                                .send(new DataPack(DataPack.GAME_START, true));
                     }
                     return;
                 }
