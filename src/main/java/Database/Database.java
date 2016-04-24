@@ -16,21 +16,16 @@ import java.util.List;
  */
 public class Database {
     private static Logger logger = LogManager.getLogger(Database.class.getName());
-    private static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
-    private static String DB_NAME = null;
-    private static String USER_NAME = null;
-    private static String PASSWORD = null;
+    private static Config config = null;
     private static Connection conn = null;
     private static Statement stmt = null;
 
     public static void initialize(Config config){
-        DB_NAME = config.getDataBaseName();
-        USER_NAME = config.getDataBaseUser();
-        PASSWORD = config.getDataBasePassword();
-        String databaseUrl = "jdbc:mysql://localhost/" + DB_NAME;
+        Database.config = config;
+        String databaseUrl = "jdbc:mysql://localhost/" + config.getDataBaseName();
         try{
             Class.forName("com.mysql.jdbc.Driver");
-            conn = DriverManager.getConnection(databaseUrl, USER_NAME, PASSWORD);
+            conn = DriverManager.getConnection(databaseUrl, config.getDataBaseUser(), config.getDataBasePassword());
             stmt = conn.createStatement();
             logger.info("Database connected.");
         } catch(Exception e){
@@ -38,9 +33,17 @@ public class Database {
         }
     }
 
+    private static void initialize(){
+        Database.initialize(Database.config);
+    }
+
     public static List<String> getUser(int id){
         String sql = "SELECT * FROM Users WHERE ID='" + String.valueOf(id) + "'";
         try{
+            // reconnect if connection is closed.
+            if(conn.isClosed())
+                Database.initialize();
+
             ResultSet result = stmt.executeQuery(sql);
             if(!result.next()){
                 return null;
@@ -63,6 +66,10 @@ public class Database {
     public static List<String> getUser(String username){
         String sql = "SELECT * FROM Users WHERE Name='" + username + "'";
         try{
+            // reconnect if connection is closed.
+            if(conn.isClosed())
+                Database.initialize();
+
             ResultSet result = stmt.executeQuery(sql);
             if(!result.next()){
                 return null;
@@ -92,6 +99,10 @@ public class Database {
         String insertSql = "INSERT INTO Users(Name,PasswordMD5) VALUES('" + username + "','" + passwordMD5 + "')";
         String querySql = "SELECT ID FROM Users WHERE Name='" + username + "'";
         try{
+            // reconnect if connection is closed.
+            if(conn.isClosed())
+                Database.initialize();
+            
             stmt.executeUpdate(insertSql);
             ResultSet result = stmt.executeQuery(querySql);
             if(!result.next())
