@@ -24,8 +24,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 /**
  * Created by Ryan on 16/4/12.
  */
-class UserCommunicationJob implements Runnable {
-    private static Logger logger = LogManager.getLogger(UserCommunicationJob.class.getName());
+class UserSocketRunnable implements Runnable {
+    private static Logger logger = LogManager.getLogger(UserSocketRunnable.class.getName());
     private Socket sock = null;
     private DataInputStream is = null;
     private DataOutputStream os = null;
@@ -34,7 +34,7 @@ class UserCommunicationJob implements Runnable {
     private int blockSize = 0;
     private LinkedBlockingDeque<DataPack> dataPackQueue = null;
 
-    public UserCommunicationJob(SSLServer parent, Socket sock) throws IOException{
+    public UserSocketRunnable(SSLServer parent, Socket sock) throws IOException{
         this.sock = sock;
         this.parent = parent;
         this.os = new DataOutputStream(sock.getOutputStream());
@@ -98,7 +98,7 @@ class UserCommunicationJob implements Runnable {
                                 msgList.add(String.valueOf(room.getUsers().size()));
                             }
                             sendNow(new DataPack(DataPack.LOGIN, new Date(), true, msgList));
-                            parent.addUserCommunicationJob(Integer.valueOf(userInfo.get(0)), this);
+                            parent.addUserSocketRunnable(Integer.valueOf(userInfo.get(0)), this);
                         }
                     }
                     return;
@@ -174,7 +174,7 @@ class UserCommunicationJob implements Runnable {
                             msgList.add(userInfo.get(3));
                             msgList.add(String.valueOf(position));
                             for(Integer roomUserId : room.getUsers()){
-                                parent.getUserCommunicationJob(roomUserId)
+                                parent.getUserSocketRunnable(roomUserId)
                                         .send(new DataPack(DataPack.ROOM_USER_ENTERED, new Date(), true, msgList));
                             }
                         }
@@ -205,7 +205,7 @@ class UserCommunicationJob implements Runnable {
                     msgList.add(String.valueOf(userId));
                     // sendNow user left message to other users
                     for(Integer roomUserId : room.getUsers()){
-                        parent.getUserCommunicationJob(roomUserId)
+                        parent.getUserSocketRunnable(roomUserId)
                                 .send(new DataPack(DataPack.ROOM_USER_LEFT, new Date(), true, msgList));
                     }
                     return;
@@ -217,7 +217,7 @@ class UserCommunicationJob implements Runnable {
 
                     // sendNow out game start signal and positions info to the users
                     for(Integer roomUserId : room.getUsers()) {
-                        parent.getUserCommunicationJob(roomUserId)
+                        parent.getUserSocketRunnable(roomUserId)
                                 .send(new DataPack(DataPack.GAME_START, new Date(), true, null));
                     }
                     return;
@@ -233,7 +233,7 @@ class UserCommunicationJob implements Runnable {
 
                     // simply forward the datapack to the users in the same room
                     for(Integer roomUserId : room.getUsers()) {
-                        parent.getUserCommunicationJob(roomUserId)
+                        parent.getUserSocketRunnable(roomUserId)
                                 .sendNow(dataPack);
                     }
                     return;

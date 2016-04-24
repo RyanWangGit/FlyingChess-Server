@@ -25,7 +25,7 @@ public class SSLServer implements Server {
     private SSLServerSocket server = null;
     private Config config = null;
     private ExecutorService socketCommunicationExecutors = null;
-    private ConcurrentHashMap<Integer, UserCommunicationJob> onlineHash = null;
+    private ConcurrentHashMap<Integer, UserSocketRunnable> onlineHash = null;
     private ConcurrentHashMap<Integer, Room> roomHash = null;
     private int nextRoomId = 0;
 
@@ -48,7 +48,7 @@ public class SSLServer implements Server {
             while(true){
                 Socket sock = server.accept();
                 logger.info("Accepted new socket " + sock.getRemoteSocketAddress().toString());
-                Runnable socketJob = new UserCommunicationJob(this, sock);
+                Runnable socketJob = new UserSocketRunnable(this, sock);
                 this.socketCommunicationExecutors.submit(socketJob);
             }
 
@@ -94,15 +94,15 @@ public class SSLServer implements Server {
 
     }
 
-    public UserCommunicationJob getUserCommunicationJob(Integer id){
+    public UserSocketRunnable getUserSocketRunnable(Integer id){
         return this.onlineHash.get(id);
     }
 
-    public void addUserCommunicationJob(Integer id, UserCommunicationJob job){
-        UserCommunicationJob curJob = this.onlineHash.get(id);
-        if(curJob != null){
+    public void addUserSocketRunnable (Integer id, UserSocketRunnable job){
+        UserSocketRunnable currentRunnable = this.onlineHash.get(id);
+        if(currentRunnable != null){
             // close the former socket
-            curJob.shutdown();
+            currentRunnable.shutdown();
         }
         this.onlineHash.put(id, job);
     }
