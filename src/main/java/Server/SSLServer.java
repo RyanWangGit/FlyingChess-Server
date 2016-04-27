@@ -3,6 +3,7 @@ package Server;
 import Config.Config;
 import DataPack.DataPack;
 import Database.Database;
+import GameObjects.Player;
 import GameObjects.Room;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,8 +28,8 @@ public class SSLServer implements Server {
     private static Logger logger = LogManager.getLogger(SSLServer.class.getName());
     private SSLServerSocket server = null;
     private Config config = null;
-    private ExecutorService userSocketExecutor = null;
-    private ConcurrentHashMap<Integer, UserSocket> onlineUserSockets = null;
+    private ExecutorService socketExecutor = null;
+    private ConcurrentHashMap<Integer, Player> onlinePlayers = null;
     private Map<Integer, Room> roomMap = null;
     private int nextRoomId = 0;
 
@@ -36,8 +37,8 @@ public class SSLServer implements Server {
         // initialize database
         Database.initialize(config);
         this.config = config;
-        this.userSocketExecutor = Executors.newCachedThreadPool();
-        this.onlineUserSockets = new ConcurrentHashMap<>(1000, 0.75f);
+        this.socketExecutor = Executors.newCachedThreadPool();
+        this.onlinePlayers = new ConcurrentHashMap<>(1000, 0.75f);
         this.roomMap = new ConcurrentHashMap<>(100, 0.75f);
     }
 
@@ -51,8 +52,8 @@ public class SSLServer implements Server {
             while(true){
                 Socket sock = server.accept();
                 logger.info("Accepted new socket " + sock.getRemoteSocketAddress().toString());
-                Runnable socketJob = new UserSocketRunnable(this, sock);
-                this.userSocketExecutor.submit(socketJob);
+                Runnable socketRunnable = new DataPackSocketRunnable(this, sock);
+                this.socketExecutor.submit(socketRunnable);
             }
 
         } catch (Exception e){
@@ -94,45 +95,58 @@ public class SSLServer implements Server {
     }
 
 
-    public UserSocket getUserSocket(Integer id) { return this.onlineUserSockets.get(id); }
+    public Player getPlayer(int id) { return this.onlinePlayers.get(id); }
 
-    public void addUserSocket(Integer id, UserSocket socket){
+    public void addPlayer(Player player){
+        Player currentPlayer = this.onlinePlayers.get(player.getId());
+        if(currentPlayer != null){
+            if(currentPlayer.getSocket().equals(player.getSocket()))
+                return;
+            // remove current
+            removePlayer(currentPlayer);
+        }
+
+        this.onlinePlayers.put(player.getId(), player);
+        return;
+    }
+
+    public void removePlayer(Player player){
         try{
-            UserSocket currentSocket = this.onlineUserSockets.get(id);
-            if(currentSocket != null){
-                // close the former socket
-                currentSocket.close();
-            }
-            this.onlineUserSockets.put(id, socket);
+            player.getSocket().send(new DataPack(DataPack.TERMINATE));
+            player.getSocket().close();
+            this.onlinePlayers.remove(player.getId());
         } catch(IOException e){
             logger.catching(e);
         }
-    }
-
-    public void removeUserSocket(Integer id){
-        this.onlineUserSockets.remove(id);
     }
 
     public Collection<Room> getRooms(){
         return this.roomMap.values();
     }
 
-    public Room getRoom(Integer roomId){
+    public Room getRoom(int roomId){
         return this.roomMap.get(roomId);
     }
 
-    public synchronized int addRoom(String roomName, Integer hostId){
-        Room room = new Room(nextRoomId, roomName, hostId);
+    public synchronized int addRoom(String roomName, Player host){
+        Room room = new Room(nextRoomId, roomName, host);
+        host.setHost(true);
+        room.addPlayer(host);
         this.roomMap.put(nextRoomId, room);
         nextRoomId++;
         return nextRoomId - 1;
     }
 
+    public void removeRoom(Room room) { this.roomMap.remove(room.getId()); }
+
     public void shutdown(){
         try{
             // send shutdown datapack to ever online users
-            for(UserSocket socket : this.onlineUserSockets.values())
-                socket.send(new DataPack(DataPack.TERMINATE));
+            // and close the socket.
+            for(Player player : this.onlinePlayers.values()){
+                player.getSocket().send(new DataPack(DataPack.TERMINATE));
+                player.getSocket().close();
+            }
 
         } catch(Exception e){
             logger.catching(e);
