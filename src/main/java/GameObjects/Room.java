@@ -1,8 +1,6 @@
 package GameObjects;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by Ryan on 16/4/21.
@@ -10,14 +8,17 @@ import java.util.Set;
 public class Room {
     private int id = -1;
     private String name = null;
-    private int[] positions = null;
+    private Player[] readyPlayers = null;
     private boolean isPlaying = false;
-    public Room(int id, String name, Integer hostId){
+    private Collection<Player>  players = null;
+
+    public Room(int id, String name, Player host){
         this.id = id;
         this.name = name;
-        this.positions = new int[4];
-        this.positions[0] = hostId;
+        this.readyPlayers = new Player[4];
         this.isPlaying = false;
+        this.players = new HashSet<>();
+        this.players.add(host);
     }
 
     public void setPlaying(boolean isPlaying) { this.isPlaying = isPlaying; }
@@ -32,48 +33,53 @@ public class Room {
         return this.name;
     }
 
-    public Collection<Integer> getUsers(){
-        Set<Integer> users = new HashSet<>(4);
-        for(int userId : positions){
-            if(userId > 0)
-                users.add(userId);
-        }
-        return users;
-    }
-
-    public int[] getPositions(){
-        return this.positions;
-    }
+    public Collection<Player> getPlayers() { return this.players; }
 
     /**
-     * Add the user to the room.
-     * @param userId The id of the user
-     * @return The position this user takes, or -1 if there's no available position.
+     * Add the player to the room.
+     * @param player The player object.
      */
-    public int addUser(Integer userId){
-        for(int i = 0; i < 4; i++){
-            if(positions[i] == 0){
-                positions[i] = userId;
-                return i;
-            }
+    public void addPlayer(Player player) { this.players.add(player); }
+
+    public void removePlayer(Player player){
+        // remove the player from ready players' array.
+        for(int i = 0;i < 4;i ++){
+            Player readyPlayer = readyPlayers[i];
+            if(player.equals(readyPlayer))
+                readyPlayers[i] = null;
         }
-        return -1;
+
+        this.players.remove(player);
     }
 
-    public boolean removeUser(Integer userId){
-        int index = getUserPosition(userId);
-        if(index == -1)
+    public boolean playerSelectPosition(Player player, int position){
+        if(position < -1 || position >= 4 || !this.players.contains(player))
             return false;
 
-        positions[index] = 0;
-        return true;
+        // if the player wants to unready
+        if(position == -1){
+            for(int i = 0;i < 4;i ++){
+                Player readyPlayer = readyPlayers[i];
+                if(readyPlayer.equals(player)){
+                    readyPlayers[i] = null;
+                    return true;
+                }
+            }
+        }
+        else{
+            if(readyPlayers[position] != null)
+                return false;
+
+            readyPlayers[position] = player;
+            return true;
+        }
+        return false;
     }
 
-    public int getUserPosition(Integer userId){
-        for(int i = 0; i < 4; i++){
-            if(positions[i] == userId){
+    public int getPlayerPosition(Player player){
+        for(int i = 0;i < 4;i ++){
+            if(player.equals(readyPlayers[i]))
                 return i;
-            }
         }
         return -1;
     }
