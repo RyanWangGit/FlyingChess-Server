@@ -78,6 +78,13 @@ public class DataPack {
         this.isSuccessful = isSuccessful;
     }
 
+    public DataPack(int command){
+        this.command = command;
+        this.date = new Date();
+        this.msgList = null;
+        this.isSuccessful = false;
+    }
+
     public boolean isValid(){
         return command != INVALID;
     }
