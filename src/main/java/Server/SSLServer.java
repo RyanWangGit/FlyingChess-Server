@@ -1,6 +1,7 @@
 package Server;
 
 import Config.Config;
+import DataPack.DataPack;
 import Database.Database;
 import Room.Room;
 import org.apache.logging.log4j.LogManager;
@@ -11,6 +12,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyStore;
@@ -26,7 +28,7 @@ public class SSLServer implements Server {
     private SSLServerSocket server = null;
     private Config config = null;
     private ExecutorService userSocketExecutor = null;
-    private ConcurrentHashMap<Integer, UserSocketRunnable> onlineUserSockets = null;
+    private ConcurrentHashMap<Integer, UserSocket> onlineUserSockets = null;
     private Map<Integer, Room> roomMap = null;
     private int nextRoomId = 0;
 
@@ -39,7 +41,7 @@ public class SSLServer implements Server {
         this.roomMap = new ConcurrentHashMap<>(100, 0.75f);
     }
 
-    public void start(){
+    public void start() {
         try {
             if(server == null || !server.isBound() || server.isClosed())
                 this.server = createServerSocket(config.getDataPort());
@@ -91,24 +93,23 @@ public class SSLServer implements Server {
         return socket;
     }
 
-    public void shutdown(){
 
-    }
+    public UserSocket getUserSocket(Integer id) { return this.onlineUserSockets.get(id); }
 
-    public UserSocketRunnable getUserSocketRunnable(Integer id){
-        return this.onlineUserSockets.get(id);
-    }
-
-    public void addUserSocketRunnable (Integer id, UserSocketRunnable job){
-        UserSocketRunnable currentRunnable = this.onlineUserSockets.get(id);
-        if(currentRunnable != null){
-            // close the former socket
-            currentRunnable.shutdown();
+    public void addUserSocket(Integer id, UserSocket socket){
+        try{
+            UserSocket currentSocket = this.onlineUserSockets.get(id);
+            if(currentSocket != null){
+                // close the former socket
+                currentSocket.close();
+            }
+            this.onlineUserSockets.put(id, socket);
+        } catch(IOException e){
+            logger.catching(e);
         }
-        this.onlineUserSockets.put(id, job);
     }
 
-    public void removeUserCommunicationJob(Integer id){
+    public void removeUserSocket(Integer id){
         this.onlineUserSockets.remove(id);
     }
 
@@ -125,5 +126,16 @@ public class SSLServer implements Server {
         this.roomMap.put(nextRoomId, room);
         nextRoomId++;
         return nextRoomId - 1;
+    }
+
+    public void shutdown(){
+        try{
+            // send shutdown datapack to ever online users
+            for(UserSocket socket : this.onlineUserSockets.values())
+                socket.send(new DataPack(DataPack.TERMINATE));
+
+        } catch(Exception e){
+            logger.catching(e);
+        }
     }
 }
