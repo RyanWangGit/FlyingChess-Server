@@ -1,8 +1,10 @@
 package Server;
 
 import Config.Config;
+import DataPack.DataPack;
 import Database.Database;
-import Room.Room;
+import GameObjects.Player;
+import GameObjects.Room;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -10,10 +12,13 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyStore;
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,21 +28,21 @@ public class SSLServer implements Server {
     private static Logger logger = LogManager.getLogger(SSLServer.class.getName());
     private SSLServerSocket server = null;
     private Config config = null;
-    private ExecutorService socketCommunicationExecutors = null;
-    private ConcurrentHashMap<Integer, UserCommunicationJob> onlineHash = null;
-    private ConcurrentHashMap<Integer, Room> roomHash = null;
+    private ExecutorService socketExecutor = null;
+    private ConcurrentHashMap<Integer, Player> onlinePlayers = null;
+    private Map<Integer, Room> roomMap = null;
     private int nextRoomId = 0;
 
     public SSLServer(Config config){
         // initialize database
         Database.initialize(config);
         this.config = config;
-        this.socketCommunicationExecutors = Executors.newCachedThreadPool();
-        this.onlineHash = new ConcurrentHashMap<>(1000, 0.75f);
-        this.roomHash = new ConcurrentHashMap<>(100, 0.75f);
+        this.socketExecutor = Executors.newCachedThreadPool();
+        this.onlinePlayers = new ConcurrentHashMap<>(1000, 0.75f);
+        this.roomMap = new ConcurrentHashMap<>(100, 0.75f);
     }
 
-    public void start(){
+    public void start() {
         try {
             if(server == null || !server.isBound() || server.isClosed())
                 this.server = createServerSocket(config.getDataPort());
@@ -47,8 +52,8 @@ public class SSLServer implements Server {
             while(true){
                 Socket sock = server.accept();
                 logger.info("Accepted new socket " + sock.getRemoteSocketAddress().toString());
-                Runnable socketJob = new UserCommunicationJob(this, sock);
-                this.socketCommunicationExecutors.submit(socketJob);
+                Runnable socketRunnable = new DataPackSocketRunnable(this, sock);
+                this.socketExecutor.submit(socketRunnable);
             }
 
         } catch (Exception e){
@@ -65,15 +70,15 @@ public class SSLServer implements Server {
         SSLServerSocket socket = null;
 
         // key name and password
-        InputStream keyNameStream = SSLServer.class.getClassLoader().getResourceAsStream("chaton.keystore");
-        char[] keyStorePass = "ryanwang@hust".toCharArray();
-        char[] keyPassword = "ryanwang@hust".toCharArray();
+        InputStream keyNameStream = new FileInputStream(config.getKeyStorePath());
+        char[] keyStorePass = config.getKeyStorePassword().toCharArray();
+        char[] keyPassword = config.getKeyPassword().toCharArray();
 
         KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(keyNameStream, keyStorePass);
 
         // create key manager
-        KeyManagerFactory kmf=KeyManagerFactory.getInstance("SunX509");
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
         kmf.init(ks, keyPassword);
 
         // create ssl context
@@ -89,39 +94,62 @@ public class SSLServer implements Server {
         return socket;
     }
 
-    public void shutdown(){
 
-    }
+    public Player getPlayer(int id) { return this.onlinePlayers.get(id); }
 
-    public UserCommunicationJob getUserCommunicationJob(Integer id){
-        return this.onlineHash.get(id);
-    }
-
-    public void addUserCommunicationJob(Integer id, UserCommunicationJob job){
-        UserCommunicationJob curJob = this.onlineHash.get(id);
-        if(curJob != null){
-            // close the former socket
-            curJob.shutdown();
+    public void addPlayer(Player player){
+        Player currentPlayer = this.onlinePlayers.get(player.getId());
+        if(currentPlayer != null){
+            if(currentPlayer.getSocket().equals(player.getSocket()))
+                return;
+            // remove current
+            removePlayer(currentPlayer);
         }
-        this.onlineHash.put(id, job);
+
+        this.onlinePlayers.put(player.getId(), player);
+        return;
     }
 
-    public void removeUserCommunicationJob(Integer id){
-        this.onlineHash.remove(id);
+    public void removePlayer(Player player){
+        try{
+            player.getSocket().send(new DataPack(DataPack.TERMINATE));
+            player.getSocket().close();
+            this.onlinePlayers.remove(player.getId());
+        } catch(IOException e){
+            logger.catching(e);
+        }
     }
 
     public Collection<Room> getRooms(){
-        return this.roomHash.values();
+        return this.roomMap.values();
     }
 
-    public Room getRoom(Integer roomId){
-        return this.roomHash.get(roomId);
+    public Room getRoom(int roomId){
+        return this.roomMap.get(roomId);
     }
 
-    public synchronized int addRoom(String roomName, Integer hostId){
-        Room room = new Room(nextRoomId, roomName, hostId);
-        this.roomHash.put(nextRoomId, room);
+    public synchronized int addRoom(String roomName, Player host){
+        Room room = new Room(nextRoomId, roomName, host);
+        host.setHost(true);
+        room.addPlayer(host);
+        this.roomMap.put(nextRoomId, room);
         nextRoomId++;
         return nextRoomId - 1;
+    }
+
+    public void removeRoom(Room room) { this.roomMap.remove(room.getId()); }
+
+    public void shutdown(){
+        try{
+            // send shutdown datapack to ever online users
+            // and close the socket.
+            for(Player player : this.onlinePlayers.values()){
+                player.getSocket().send(new DataPack(DataPack.TERMINATE));
+                player.getSocket().close();
+            }
+
+        } catch(Exception e){
+            logger.catching(e);
+        }
     }
 }
