@@ -15,14 +15,14 @@ import java.nio.charset.Charset;
 /**
  * Created by Ryan on 16/4/26.
  */
-public class UserSocket {
-    private static Logger logger = LogManager.getLogger(UserSocket.class.getName());
+public class DataPackSocket {
+    private static Logger logger = LogManager.getLogger(DataPackSocket.class.getName());
     protected Socket socket = null;
     protected DataInputStream is = null;
     protected DataOutputStream os = null;
     protected Gson dataPackGson = new GsonBuilder().setDateFormat("yyyy-MM-dd hh:mm:ss").create();
 
-    public UserSocket(Socket socket) throws IOException{
+    public DataPackSocket(Socket socket) throws IOException{
         this.socket = socket;
         this.os = new DataOutputStream(socket.getOutputStream());
         this.is = new DataInputStream(socket.getInputStream());
