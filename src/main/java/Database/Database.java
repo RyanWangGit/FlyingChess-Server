@@ -1,6 +1,7 @@
 package Database;
 
 import Config.Config;
+import GameObjects.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -8,8 +9,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by Ryan on 16/4/18.
@@ -37,7 +36,7 @@ public class Database {
         Database.initialize(Database.config);
     }
 
-    public static List<String> getUser(int id){
+    public static User getUser(int id){
         String sql = "SELECT * FROM Users WHERE ID='" + String.valueOf(id) + "'";
         try{
             // reconnect if connection is closed.
@@ -49,12 +48,12 @@ public class Database {
                 return null;
             }
             else{
-                List<String> userInfo = new ArrayList<>();
-                userInfo.add(result.getString("ID"));
-                userInfo.add(result.getString("Name"));
-                userInfo.add(result.getString("PasswordMD5"));
-                userInfo.add(result.getString("Points"));
-                return userInfo;
+                User user = new User(
+                        result.getInt("ID"),
+                        result.getString("Name"),
+                        result.getString("PasswordMD5"),
+                        result.getInt("Points"));
+                return user;
             }
         } catch(Exception e){
             logger.catching(e);
@@ -63,7 +62,7 @@ public class Database {
     }
 
 
-    public static List<String> getUser(String username){
+    public static User getUser(String username){
         String sql = "SELECT * FROM Users WHERE Name='" + username + "'";
         try{
             // reconnect if connection is closed.
@@ -75,12 +74,12 @@ public class Database {
                 return null;
             }
             else{
-                List<String> userInfo = new ArrayList<>();
-                userInfo.add(result.getString("ID"));
-                userInfo.add(result.getString("Name"));
-                userInfo.add(result.getString("PasswordMD5"));
-                userInfo.add(result.getString("Points"));
-                return userInfo;
+                User user = new User(
+                        result.getInt("ID"),
+                        result.getString("Name"),
+                        result.getString("PasswordMD5"),
+                        result.getInt("Points"));
+                return user;
             }
         } catch(Exception e){
             logger.catching(e);
