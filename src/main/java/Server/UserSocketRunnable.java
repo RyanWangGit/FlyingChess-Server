@@ -2,7 +2,7 @@ package Server;
 
 import DataPack.DataPack;
 import Database.Database;
-import Room.Room;
+import GameObjects.Room;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

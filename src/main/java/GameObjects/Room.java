@@ -1,4 +1,4 @@
-package Room;
+package GameObjects;
 
 import java.util.Collection;
 import java.util.HashSet;
