@@ -11,16 +11,23 @@ public class Room {
     private int id = -1;
     private String name = null;
     private int[] positions = null;
+    private boolean isPlaying = false;
     public Room(int id, String name, Integer hostId){
         this.id = id;
         this.name = name;
         this.positions = new int[4];
         this.positions[0] = hostId;
+        this.isPlaying = false;
     }
+
+    public void setPlaying(boolean isPlaying) { this.isPlaying = isPlaying; }
+
+    public boolean isPlaying() { return this.isPlaying; }
 
     public int getId(){
         return this.id;
     }
+
     public String getName(){
         return this.name;
     }
