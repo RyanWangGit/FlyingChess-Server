@@ -12,8 +12,8 @@
         <password>password</password>
     </database>
     <ssl>
-        <keystore>./flyingchess.keystore</keystore>
-        <keystorepass>ryanwang@hust</keystorepass>
-        <keypass>ryanwang@hust</keypass>
+        <keystore>./flyingchess.jks</keystore>
+        <keystorepass>password</keystorepass>
+        <keypass>password</keypass>
     </ssl>
 </config>
