@@ -3,62 +3,41 @@ package Server;
 import DataPack.DataPack;
 import Database.Database;
 import Room.Room;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
-import java.net.SocketTimeoutException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * Created by Ryan on 16/4/12.
  */
-class UserSocketRunnable implements Runnable {
+class UserSocketRunnable extends UserSocket implements Runnable {
     private static Logger logger = LogManager.getLogger(UserSocketRunnable.class.getName());
-    private Socket sock = null;
-    private DataInputStream is = null;
-    private DataOutputStream os = null;
     private SSLServer parent = null;
-    private Gson dataPackGson = new GsonBuilder().setDateFormat("yyyy-MM-dd hh:mm:ss").create();
-    private int blockSize = 0;
-    private LinkedBlockingDeque<DataPack> dataPackQueue = null;
 
-    public UserSocketRunnable(SSLServer parent, Socket sock) throws IOException{
-        this.sock = sock;
+
+    public UserSocketRunnable(SSLServer parent, Socket socket) throws IOException{
+        super(socket);
         this.parent = parent;
-        this.os = new DataOutputStream(sock.getOutputStream());
-        this.is = new DataInputStream(sock.getInputStream());
-        this.dataPackQueue = new LinkedBlockingDeque<>(100);
-        this.sock.setSoTimeout(100);
     }
 
     public void run(){
         try{
-            logger.info("Connection established with " + sock.getInetAddress().toString());
-            // segment data into json strings
+            logger.info("Connection established with " + socket.getInetAddress().toString());
 
+            // enter process loop
             while(true){
-                try{
-                    processDataPack(receive());
-                } catch(SocketTimeoutException e){
-                    // do nothing
-                }
-
+                processDataPack(receive());
             }
 
         } catch(EOFException e){
-            logger.warn("Found EOF when reading from " + sock.getInetAddress().toString() + ".Drop the connection.");
+            logger.warn("Found EOF when reading from " + socket.getInetAddress().toString() + ".Drop the connection.");
         }
         catch(SocketException e){
             logger.info("Socket shutdown due to external request.");
@@ -68,7 +47,12 @@ class UserSocketRunnable implements Runnable {
         }
     }
 
-    private void processDataPack(DataPack dataPack) throws SocketTimeoutException{
+    /**
+     * Process the incoming data packs.
+     *
+     * @param dataPack The data pack to be processed.
+     */
+    private void processDataPack(DataPack dataPack) {
         try{
             switch(dataPack.getCommand()){
                 case DataPack.INVALID:{
@@ -81,7 +65,7 @@ class UserSocketRunnable implements Runnable {
 
                     List<String> userInfo = Database.getUser(username);
                     if(userInfo == null){
-                        sendNow(new DataPack(DataPack.LOGIN, false));
+                        send(new DataPack(DataPack.LOGIN, false));
                     }
                     else{
                         // login successful
@@ -89,8 +73,15 @@ class UserSocketRunnable implements Runnable {
                             List<String> msgList = new ArrayList<>();
                             msgList.add(userInfo.get(0));
                             msgList.add(userInfo.get(3));
-                            sendNow(new DataPack(DataPack.LOGIN, true, msgList));
-                            parent.addUserSocketRunnable(Integer.valueOf(userInfo.get(0)), this);
+                            UserSocket currentSocket = parent.getUserSocket(Integer.valueOf(userInfo.get(0)));
+                            send(new DataPack(DataPack.LOGIN, true, msgList));
+
+                            // process the user's former connections
+                            if(currentSocket != null && !currentSocket.equals(this)){
+                                currentSocket.send(new DataPack(DataPack.TERMINATE));
+                                currentSocket.close();
+                            }
+                            parent.addUserSocket(Integer.valueOf(userInfo.get(0)), this);
                         }
                     }
                     return;
@@ -104,17 +95,17 @@ class UserSocketRunnable implements Runnable {
                         int userIndex = Database.addUser(username, passwordMD5);
                         List<String> msgList = new ArrayList<>();
                         msgList.add(String.valueOf(userIndex));
-                        sendNow(new DataPack(DataPack.REGISTER, true, msgList));
+                        send(new DataPack(DataPack.REGISTER, true, msgList));
                     }
                     else{
-                        sendNow(new DataPack(DataPack.REGISTER, false));
+                        send(new DataPack(DataPack.REGISTER, false));
                     }
                     return;
                 }
                 case DataPack.LOGOUT:{
                     int userIndex = Integer.valueOf(dataPack.getMessage(0));
-                    parent.removeUserCommunicationJob(userIndex);
-                    sendNow(new DataPack(DataPack.LOGOUT, true));
+                    parent.removeUserSocket(userIndex);
+                    send(new DataPack(DataPack.LOGOUT, true));
                     return;
                 }
                 case DataPack.ROOM_CREATE:{
@@ -124,7 +115,7 @@ class UserSocketRunnable implements Runnable {
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(roomId));
                     logger.info("Room created: " + roomId + " " + roomName);
-                    sendNow(new DataPack(DataPack.ROOM_CREATE, true, msgList));
+                    send(new DataPack(DataPack.ROOM_CREATE, true, msgList));
                     return;
                 }
                 case DataPack.ROOM_ENTER:{
@@ -132,33 +123,37 @@ class UserSocketRunnable implements Runnable {
                     Integer roomId = Integer.valueOf(dataPack.getMessage(1));
                     Room room = parent.getRoom(roomId);
                     if(room == null){
-                        sendNow(new DataPack(DataPack.ROOM_ENTER, false));
+                        send(new DataPack(DataPack.ROOM_ENTER, false));
                     }
                     else{
                         // if room has reached its limit
                         if(room.getUsers().size() == 4){
-                            sendNow(new DataPack(DataPack.ROOM_ENTER, false));
+                            send(new DataPack(DataPack.ROOM_ENTER, false));
                         }
                         else{
                             // add user into room
                             int position = room.addUser(userId);
 
-                            // sendNow room user info back
+                            // send room user info back
                             List<String> msgList = new ArrayList<>();
                             msgList.add(String.valueOf(position));
                             for(Integer roomUserId : room.getUsers()){
                                 if(roomUserId != userId){
                                     // add user id
                                     msgList.add(String.valueOf(roomUserId));
+
+                                    List<String> userInfo = Database.getUser(roomUserId);
                                     // add user name
-                                    msgList.add(Database.getUser(roomUserId).get(1));
+                                    msgList.add(userInfo.get(1));
+                                    // add user points
+                                    msgList.add(userInfo.get(3));
                                     // add user position
                                     msgList.add(String.valueOf(room.getUserPosition(roomUserId)));
                                 }
                             }
-                            sendNow(new DataPack(DataPack.ROOM_ENTER, true, msgList));
+                            send(new DataPack(DataPack.ROOM_ENTER, true, msgList));
 
-                            // sendNow new user info to other users
+                            // send new user info to other users
                             msgList.clear();
                             msgList.add(String.valueOf(userId));
                             List<String> userInfo = Database.getUser(userId);
@@ -166,7 +161,7 @@ class UserSocketRunnable implements Runnable {
                             msgList.add(userInfo.get(3));
                             msgList.add(String.valueOf(position));
                             for(Integer roomUserId : room.getUsers()){
-                                parent.getUserSocketRunnable(roomUserId)
+                                parent.getUserSocket(roomUserId)
                                         .send(new DataPack(DataPack.ROOM_USER_ENTERED, true, msgList));
                             }
                         }
@@ -182,8 +177,13 @@ class UserSocketRunnable implements Runnable {
                         msgList.add(room.getName());
                         // add number of players in the room
                         msgList.add(String.valueOf(room.getUsers().size()));
+                        // add room status
+                        if(room.isPlaying())
+                            msgList.add("1");
+                        else
+                            msgList.add("0");
                     }
-                    sendNow(new DataPack(DataPack.ROOM_LOOKUP, true, msgList));
+                    send(new DataPack(DataPack.ROOM_LOOKUP, true, msgList));
                     return;
                 }
                 case DataPack.ROOM_EXIT:{
@@ -191,13 +191,13 @@ class UserSocketRunnable implements Runnable {
                     Integer roomId = Integer.valueOf(dataPack.getMessage(1));
                     Room room = parent.getRoom(roomId);
                     room.removeUser(userId);
-                    sendNow(new DataPack(DataPack.ROOM_EXIT, true));
+                    send(new DataPack(DataPack.ROOM_EXIT, true));
 
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(userId));
-                    // sendNow user left message to other users
+                    // send user left message to other users
                     for(Integer roomUserId : room.getUsers()){
-                        parent.getUserSocketRunnable(roomUserId)
+                        parent.getUserSocket(roomUserId)
                                 .send(new DataPack(DataPack.ROOM_USER_LEFT, true, msgList));
                     }
                     return;
@@ -207,9 +207,9 @@ class UserSocketRunnable implements Runnable {
                     Integer roomId = Integer.valueOf(dataPack.getMessage(1));
                     Room room = parent.getRoom(roomId);
 
-                    // sendNow out game start signal and positions info to the users
+                    // send out game start signal and positions info to the users
                     for(Integer roomUserId : room.getUsers()) {
-                        parent.getUserSocketRunnable(roomUserId)
+                        parent.getUserSocket(roomUserId)
                                 .send(new DataPack(DataPack.GAME_START, true));
                     }
                     return;
@@ -225,8 +225,8 @@ class UserSocketRunnable implements Runnable {
 
                     // simply forward the datapack to the users in the same room
                     for(Integer roomUserId : room.getUsers()) {
-                        parent.getUserSocketRunnable(roomUserId)
-                                .sendNow(dataPack);
+                        parent.getUserSocket(roomUserId)
+                                .send(dataPack);
                     }
                     return;
                 }
@@ -241,80 +241,24 @@ class UserSocketRunnable implements Runnable {
         }
     }
 
-    private DataPack receive() throws IOException{
-        // get the block size integer
-        if(blockSize == 0){
-            this.blockSize = this.is.readInt();
-            logger.debug("Message size: " + String.valueOf(this.blockSize));
+    @Override
+    public boolean equals(Object obj){
+        if(obj == null)
+            return false;
+
+        if(!(obj instanceof UserSocketRunnable))
+            return false;
+
+        UserSocketRunnable socketRunnable = (UserSocketRunnable) obj;
+
+        if(socketRunnable.socket == null)
+            return false;
+
+        if(socketRunnable.socket.getInetAddress().equals(this.socket.getInetAddress())
+                && socketRunnable.socket.getPort() == this.socket.getPort()){
+            return true;
         }
 
-        byte[] bytes = new byte[blockSize];
-        this.is.readFully(bytes);
-        this.blockSize = 0;
-
-        String json = new String(bytes, "UTF-8");
-        logger.debug(json);
-
-        // parse the datapack and return
-        return dataPackGson.fromJson(json, DataPack.class);
-    }
-
-    /**
-     * Queue the datapack into the messaging queue, which will be sent out afterwards.
-     * @param dataPack The datapack to be queued.
-     */
-    public void send(DataPack dataPack) {
-        try{
-            this.dataPackQueue.put(dataPack);
-        } catch(InterruptedException e){
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Send out all available queued datapacks.
-     */
-    private void sendQueuedDataPack(){
-        List<DataPack> dataPackList = new ArrayList<>();
-        this.dataPackQueue.drainTo(dataPackList);
-        // send out all available datapacks.
-        try{
-            for(DataPack dataPack : dataPackList){
-                byte[] sendBytes = dataPackGson.toJson(dataPack, DataPack.class).getBytes(Charset.forName("UTF-8"));
-                int bytesSize = sendBytes.length;
-
-                this.os.writeInt(bytesSize);
-                this.os.write(sendBytes);
-            }
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * This method sends out the datapack immediately, which does not
-     * queue into the messaging queue and not thread safe. Invoke with
-     * caution.
-     * @param dataPack The datapack to be sent.
-     */
-    public void sendNow(DataPack dataPack) {
-        try{
-            byte[] sendBytes = dataPackGson.toJson(dataPack, DataPack.class).getBytes(Charset.forName("UTF-8"));
-            int bytesSize = sendBytes.length;
-            logger.debug(bytesSize);
-            this.os.writeInt(bytesSize);
-            this.os.write(sendBytes);
-            logger.debug(new String(sendBytes));
-        } catch(IOException e){
-            logger.catching(e);
-        }
-    }
-
-    public void shutdown(){
-        try{
-            this.sock.close();
-        } catch(IOException e){
-            logger.catching(e);
-        }
+        return false;
     }
 }
