@@ -5,10 +5,7 @@ import GameObjects.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 
 /**
  * Created by Ryan on 16/4/18.
@@ -21,7 +18,7 @@ public class Database {
 
     public static void initialize(Config config){
         Database.config = config;
-        String databaseUrl = "jdbc:mysql://localhost/" + config.getDataBaseName();
+        String databaseUrl = "jdbc:mysql://" + config.getDataBaseIP() + ":" + config.getDataBasePort() + "/" + config.getDataBaseName();
         try{
             Class.forName("com.mysql.jdbc.Driver");
             conn = DriverManager.getConnection(databaseUrl, config.getDataBaseUser(), config.getDataBasePassword());
@@ -108,10 +105,24 @@ public class Database {
                 return -1;
             else
                 return result.getInt("ID");
-        } catch(Exception e){
+        } catch(SQLException e){
             logger.catching(e);
         }
         return -1;
     }
+
+    public static void updateUser(User user){
+        String sql = "UPDATE Users SET PasswordMD5 = '" + user.getPasswordMD5() + "',Points = '" + user.getPoints()
+                + "' WHERE ID = '" + user.getId() + "'";
+        try{
+            if(conn.isClosed())
+                Database.initialize();
+
+            stmt.executeUpdate(sql);
+        } catch(SQLException e){
+            logger.catching(e);
+        }
+    }
+
 
 }
