@@ -45,7 +45,7 @@ public class DataPackSocket {
 
         DataPack dataPack = dataPackGson.fromJson(json, DataPack.class);
 
-        if(dataPack.getCommand() != DataPack.ROOM_LOOKUP){
+        if(dataPack.getCommand() != DataPack.R_ROOM_LOOKUP){
             logger.debug(json);
         }
 
@@ -76,7 +76,7 @@ public class DataPackSocket {
             this.os.writeInt(bytesSize);
             this.os.write(sendBytes);
             this.os.flush();
-            if(dataPack.getCommand() != DataPack.ROOM_LOOKUP){
+            if(dataPack.getCommand() != DataPack.R_ROOM_LOOKUP){
                 logger.debug(new String(sendBytes));
             }
         } catch(IOException e){
