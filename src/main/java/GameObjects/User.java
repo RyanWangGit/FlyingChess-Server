@@ -30,4 +30,6 @@ public class User {
     public String getPasswordMD5() { return this.passwordMD5; }
 
     public int getPoints() { return this.points; }
+
+    public void setPoints(int points) { this.points = points; }
 }
