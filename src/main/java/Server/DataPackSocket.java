@@ -24,6 +24,7 @@ public class DataPackSocket {
 
     public DataPackSocket(Socket socket) throws IOException{
         this.socket = socket;
+        this.socket.setTcpNoDelay(true);
         this.os = new DataOutputStream(socket.getOutputStream());
         this.is = new DataInputStream(socket.getInputStream());
     }
@@ -36,17 +37,20 @@ public class DataPackSocket {
      */
     protected DataPack receive() throws IOException{
         int blockSize = this.is.readInt();
-        logger.debug("Message size: " + String.valueOf(blockSize));
-
 
         byte[] bytes = new byte[blockSize];
         this.is.readFully(bytes);
 
         String json = new String(bytes, "UTF-8");
-        logger.debug(json);
+
+        DataPack dataPack = dataPackGson.fromJson(json, DataPack.class);
+
+        if(dataPack.getCommand() != DataPack.ROOM_LOOKUP){
+            logger.debug(json);
+        }
 
         // parse the datapack and return
-        return dataPackGson.fromJson(json, DataPack.class);
+        return dataPack;
     }
 
     /**
@@ -68,11 +72,13 @@ public class DataPackSocket {
         try{
             byte[] sendBytes = dataPackGson.toJson(dataPack, DataPack.class).getBytes(Charset.forName("UTF-8"));
             int bytesSize = sendBytes.length;
-            logger.debug(bytesSize);
+
             this.os.writeInt(bytesSize);
             this.os.write(sendBytes);
             this.os.flush();
-            logger.debug(new String(sendBytes));
+            if(dataPack.getCommand() != DataPack.ROOM_LOOKUP){
+                logger.debug(new String(sendBytes));
+            }
         } catch(IOException e){
             logger.catching(e);
         }
