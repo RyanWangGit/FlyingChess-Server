@@ -5,6 +5,7 @@ import DataPack.DataPack;
 import Database.Database;
 import GameObjects.Player;
 import GameObjects.Room;
+import GameObjects.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -95,7 +96,14 @@ public class SSLServer implements Server {
     }
 
 
-    public Player getPlayer(int id) { return this.onlinePlayers.get(id); }
+    public Player getPlayer(int id) {
+        // if it is a robot
+        if(id < 0 && id >= -4){
+            return new Player(new User(id, "Robot", null, 0), null);
+        }
+        else
+            return this.onlinePlayers.get(id);
+    }
 
     public void addPlayer(Player player){
         Player currentPlayer = this.onlinePlayers.get(player.getId());
