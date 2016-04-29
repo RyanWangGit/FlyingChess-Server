@@ -53,30 +53,36 @@ public class Room {
     }
 
     public boolean playerSelectPosition(Player player, int position){
-        if(position < -1 || position >= 4 || !this.players.contains(player))
+        if(position < -1 || position >= 4 || (!player.isRobot() && !this.players.contains(player)))
             return false;
 
-        // if the player wants to unready
-        if(position == -1){
-            for(int i = 0;i < 4;i ++){
-                Player readyPlayer = readyPlayers[i];
-                if(readyPlayer.equals(player)){
-                    readyPlayers[i] = null;
-                    return true;
-                }
+        // remove the player from the current position
+        for(int i = 0;i < 4;i ++){
+            Player readyPlayer = readyPlayers[i];
+            if(player.equals(readyPlayer)){
+                readyPlayers[i] = null;
+                if(player.isRobot())
+                    players.remove(player);
+                break;
             }
         }
-        else{
+
+        // if the player wants to pick another position
+        if(position != -1){
             if(readyPlayers[position] != null)
                 return false;
 
             readyPlayers[position] = player;
-            return true;
+            if(player.isRobot())
+                players.add(player);
         }
-        return false;
+        return true;
     }
 
     public int getPlayerPosition(Player player){
+        if(player.isRobot()){
+            return -player.getId() - 1;
+        }
         for(int i = 0;i < 4;i ++){
             if(player.equals(readyPlayers[i]))
                 return i;
