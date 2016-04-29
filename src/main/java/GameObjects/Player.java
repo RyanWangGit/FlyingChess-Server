@@ -20,6 +20,8 @@ public class Player extends User {
         this.socket = socket;
     }
 
+    public boolean isRobot() { return this.id == -1; }
+
     public boolean isHost() { return this.isHost; }
 
     public void setHost(boolean isHost) { this.isHost = isHost; }
