@@ -214,7 +214,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                         List<String> msgList = getPlayerInfoMessage(player, room);
                         for(Player roomPlayer : room.getPlayers()){
                             if(!roomPlayer.isRobot()){
-                                roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_POSITION_SELECT, msgList));
+                                roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_POSITION_SELECT, true, msgList));
                             }
                         }
                     }
