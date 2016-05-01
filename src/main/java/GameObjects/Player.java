@@ -20,7 +20,7 @@ public class Player extends User {
         this.socket = socket;
     }
 
-    public boolean isRobot() { return this.id == -1; }
+    public boolean isRobot() { return this.id <= -1 && this.id >= -4; }
 
     public boolean isHost() { return this.isHost; }
 
