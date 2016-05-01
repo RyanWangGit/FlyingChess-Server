@@ -47,10 +47,12 @@ public class DataPack {
     /**
      * Commands in gaming process.
      */
-    public final static int R_GAME_PROCEED = 4000;
-    public final static int E_GAME_PROCEED = 4100;
-    public final static int R_GAME_FINISHED = 4001;
-    public final static int E_GAME_FINISHED = 4101;
+    public final static int R_GAME_PROCEED_DICE = 4000;
+    public final static int E_GAME_PROCEED_DICE = 4100;
+    public final static int R_GAME_PROCEED_PLANE = 4001;
+    public final static int E_GAME_PROCEED_PLANE = 4101;
+    public final static int R_GAME_FINISHED = 4009;
+    public final static int E_GAME_FINISHED = 4109;
 
     public final static int TERMINATE = 5000;
 
