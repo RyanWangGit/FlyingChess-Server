@@ -173,7 +173,10 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     for(Room room : parent.getRooms()){
                         msgList.addAll(getRoomInfoMessage(room));
                     }
-                    send(new DataPack(DataPack.A_ROOM_LOOKUP, true, msgList));
+                    dataPack.setCommand(DataPack.A_ROOM_LOOKUP);
+                    dataPack.setSuccessful(true);
+                    dataPack.setMessageList(msgList);
+                    send(dataPack);
                     return;
                 }
                 case DataPack.R_ROOM_ENTER:{
@@ -184,7 +187,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     }
                     else{
                         // if room has reached its limit
-                        if(room.getPlayers().size() == 4){
+                        if(room.getPlayers().size() >= 4){
                             send(new DataPack(DataPack.A_ROOM_ENTER, false));
                         }
                         else{
@@ -304,12 +307,29 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     }
                     return;
                 }
-                case DataPack.R_GAME_PROCEED:{
+                case DataPack.R_GAME_PROCEED_DICE:{
                     Player player = parent.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
                     Room room = parent.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
                     // set the command
-                    dataPack.setCommand(DataPack.E_GAME_PROCEED);
+                    dataPack.setCommand(DataPack.E_GAME_PROCEED_DICE);
+                    // update datapack's time
+                    dataPack.setDate(new Date());
+
+                    // simply forward the datapack to the users in the same room
+                    for(Player roomPlayer : room.getPlayers()) {
+                        if(!roomPlayer.equals(player)){
+                            roomPlayer.getSocket().send(dataPack);
+                        }
+                    }
+                    return;
+                }
+                case DataPack.R_GAME_PROCEED_PLANE:{
+                    Player player = parent.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = parent.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+
+                    // set the command
+                    dataPack.setCommand(DataPack.E_GAME_PROCEED_PLANE);
                     // update datapack's time
                     dataPack.setDate(new Date());
 
