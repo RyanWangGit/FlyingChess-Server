@@ -4,8 +4,8 @@ import Config.Config;
 import DataPack.DataPack;
 import Database.Database;
 import GameObjects.Player;
-import GameObjects.Room;
-import GameObjects.User;
+import Managers.PlayerManager;
+import Managers.RoomManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,13 +14,9 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.security.KeyStore;
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,17 +26,17 @@ public class SSLServer implements Server {
     private SSLServerSocket server = null;
     private Config config = null;
     private ExecutorService socketExecutor = null;
-    private ConcurrentHashMap<Integer, Player> onlinePlayers = null;
-    private Map<Integer, Room> roomMap = null;
-    private int nextRoomId = 0;
+    private PlayerManager playerManager = null;
+    private RoomManager roomManager = null;
+
 
     public SSLServer(Config config){
         // initialize database
         Database.initialize(config);
         this.config = config;
         this.socketExecutor = Executors.newCachedThreadPool();
-        this.onlinePlayers = new ConcurrentHashMap<>(1000, 0.75f);
-        this.roomMap = new ConcurrentHashMap<>(100, 0.75f);
+        this.roomManager = new RoomManager();
+        this.playerManager = new PlayerManager();
     }
 
     public void start() {
@@ -53,7 +49,7 @@ public class SSLServer implements Server {
             while(true){
                 Socket sock = server.accept();
                 logger.info("Accepted new socket " + sock.getRemoteSocketAddress().toString());
-                Runnable socketRunnable = new DataPackSocketRunnable(this, sock);
+                Runnable socketRunnable = new DataPackSocketRunnable(playerManager, roomManager, sock);
                 this.socketExecutor.submit(socketRunnable);
             }
 
@@ -96,62 +92,13 @@ public class SSLServer implements Server {
     }
 
 
-    public Player getPlayer(int id) {
-        // if it is a robot
-        if(id < 0 && id >= -4){
-            return new Player(new User(id, "Robot", null, 0), null);
-        }
-        else
-            return this.onlinePlayers.get(id);
-    }
 
-    public void addPlayer(Player player){
-        Player currentPlayer = this.onlinePlayers.get(player.getId());
-        if(currentPlayer != null){
-            if(currentPlayer.getSocket().equals(player.getSocket()))
-                return;
-            // remove current
-            removePlayer(currentPlayer);
-        }
-
-        this.onlinePlayers.put(player.getId(), player);
-        return;
-    }
-
-    public void removePlayer(Player player){
-        try{
-            player.getSocket().send(new DataPack(DataPack.TERMINATE));
-            player.getSocket().close();
-            this.onlinePlayers.remove(player.getId());
-        } catch(IOException e){
-            logger.catching(e);
-        }
-    }
-
-    public Collection<Room> getRooms(){
-        return this.roomMap.values();
-    }
-
-    public Room getRoom(int roomId){
-        return this.roomMap.get(roomId);
-    }
-
-    public synchronized int addRoom(String roomName, Player host){
-        Room room = new Room(nextRoomId, roomName, host);
-        host.setHost(true);
-        room.addPlayer(host);
-        this.roomMap.put(nextRoomId, room);
-        nextRoomId++;
-        return nextRoomId - 1;
-    }
-
-    public void removeRoom(Room room) { this.roomMap.remove(room.getId()); }
 
     public void shutdown(){
         try{
             // send shutdown datapack to ever online users
             // and close the socket.
-            for(Player player : this.onlinePlayers.values()){
+            for(Player player : playerManager.getPlayers()){
                 player.getSocket().send(new DataPack(DataPack.TERMINATE));
                 player.getSocket().close();
             }
