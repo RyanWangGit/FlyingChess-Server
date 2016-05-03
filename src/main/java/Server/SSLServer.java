@@ -3,7 +3,7 @@ package Server;
 import Config.Config;
 import DataPack.DataPack;
 import Database.Database;
-import GameObjects.Player;
+import GameObjects.Player.Player;
 import Managers.PlayerManager;
 import Managers.RoomManager;
 import org.apache.logging.log4j.LogManager;
@@ -98,7 +98,7 @@ public class SSLServer implements Server {
         try{
             // send shutdown datapack to ever online users
             // and close the socket.
-            for(Player player : playerManager.getPlayers()){
+            for(Player player : playerManager.getAllPlayers()){
                 player.getSocket().send(new DataPack(DataPack.TERMINATE));
                 player.getSocket().close();
             }
