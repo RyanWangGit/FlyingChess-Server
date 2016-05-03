@@ -1,7 +1,8 @@
 package Managers;
 
-import GameObjects.Player;
+import GameObjects.Player.Player;
 import GameObjects.Room;
+import edu.emory.mathcs.backport.java.util.Collections;
 
 import java.util.Collection;
 import java.util.Map;
@@ -12,14 +13,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class RoomManager {
     private Map<Integer, Room> rooms = null;
-    private int nextRoomId = 0;
+    private int nextId = 0;
 
     public RoomManager(){
         this.rooms = new ConcurrentHashMap<>(100, 0.75f);
     }
 
-    public Collection<Room> getRooms(){
-        return this.rooms.values();
+    public Collection<Room> getAllRooms(){
+        return Collections.unmodifiableCollection(this.rooms.values());
     }
 
     public Room getRoom(int roomId){
@@ -27,12 +28,12 @@ public class RoomManager {
     }
 
     public synchronized int addRoom(String roomName, Player host){
-        Room room = new Room(nextRoomId, roomName, host);
+        Room room = new Room(nextId, roomName, host);
         host.setHost(true);
         room.addPlayer(host);
-        this.rooms.put(nextRoomId, room);
-        nextRoomId++;
-        return nextRoomId - 1;
+        this.rooms.put(nextId, room);
+        nextId++;
+        return nextId - 1;
     }
 
     public void removeRoom(Room room) { this.rooms.remove(room.getId()); }
