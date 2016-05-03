@@ -57,6 +57,7 @@ public class DataPackSocket {
      * Close the socket.
      */
     public void close() throws IOException{
+        send(new DataPack(DataPack.TERMINATE));
         this.os.close();
         this.is.close();
         this.socket.close();
