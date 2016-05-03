@@ -1,5 +1,6 @@
-package GameObjects;
+package GameObjects.Player;
 
+import GameObjects.User;
 import Server.DataPackSocket;
 
 /**
@@ -8,16 +9,15 @@ import Server.DataPackSocket;
 public class Player extends User {
     private boolean isHost = false;
     private DataPackSocket socket = null;
-
-    public Player(User user, DataPackSocket socket, boolean isHost){
-        super(user);
-        this.socket = socket;
-        this.isHost = isHost;
-    }
+    private int status = 0;
+    public static final int ROOM_SELECTING = 0;
+    public static final int ROOM_WAITING = 1;
+    public static final int PLAYING = 2;
 
     public Player(User user, DataPackSocket socket){
         super(user);
         this.socket = socket;
+        this.status = ROOM_SELECTING;
     }
 
     public boolean isRobot() { return this.id <= -1 && this.id >= -4; }
@@ -42,4 +42,13 @@ public class Player extends User {
 
         return false;
     }
+
+    @Override
+    public int hashCode(){
+        return this.id;
+    }
+
+    public int getStatus() { return this.status; }
+
+    public void setStatus(int status) { this.status = status; }
 }

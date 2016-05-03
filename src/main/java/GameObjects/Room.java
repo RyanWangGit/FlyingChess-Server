@@ -1,5 +1,7 @@
 package GameObjects;
 
+import GameObjects.Player.Player;
+
 import java.util.*;
 
 /**
@@ -21,7 +23,19 @@ public class Room {
         this.players.put(host.getId(), host);
     }
 
-    public void setPlaying(boolean isPlaying) { this.isPlaying = isPlaying; }
+    public void setPlaying(boolean isPlaying) {
+        this.isPlaying = isPlaying;
+        if(isPlaying){
+            for(Player player : players.values()){
+                player.setStatus(Player.PLAYING);
+            }
+        }
+        else{
+            for(Player player : players.values()){
+                player.setStatus(Player.ROOM_WAITING);
+            }
+        }
+    }
 
     public boolean isPlaying() { return this.isPlaying; }
 
@@ -39,7 +53,10 @@ public class Room {
      * Add the player to the room.
      * @param player The player object.
      */
-    public void addPlayer(Player player) { this.players.put(player.getId(), player); }
+    public void addPlayer(Player player) {
+        player.setStatus(Player.ROOM_WAITING);
+        this.players.put(player.getId(), player);
+    }
 
     public void removePlayer(Player player){
         // remove the player from ready players' array.
@@ -48,7 +65,7 @@ public class Room {
             if(player.equals(readyPlayer))
                 readyPlayers[i] = null;
         }
-
+        player.setStatus(Player.ROOM_SELECTING);
         this.players.remove(player.getId());
     }
 
