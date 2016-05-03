@@ -1,8 +1,10 @@
 package Server;
 
 import DataPack.DataPack;
+import DataPack.DataPackUtil;
 import Database.Database;
-import GameObjects.Player;
+import GameObjects.Player.Player;
+import GameObjects.Player.RoomSelectingFilter;
 import GameObjects.Room;
 import GameObjects.User;
 import Managers.PlayerManager;
@@ -26,9 +28,12 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
     private static Logger logger = LogManager.getLogger(DataPackSocketRunnable.class.getName());
     private RoomManager roomManager = null;
     private PlayerManager playerManager = null;
+    private BroadcastThread broadcastThread = null;
 
     public DataPackSocketRunnable(RoomManager roomManager, PlayerManager playerManager, Socket socket) throws IOException{
         super(socket);
+        this.roomManager = roomManager;
+        this.playerManager = playerManager;
     }
 
     public DataPackSocketRunnable(PlayerManager playerManager, RoomManager roomManager, Socket socket) throws IOException{
@@ -55,56 +60,15 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
         }
     }
 
-    private List<String> getRoomPlayerInfoMessage(Room room){
-        List<String> msgList = new LinkedList<>();
-        List<String> otherPlayerMsgList = new LinkedList<>();
-        for(Player player : room.getPlayers()){
-            // put the host player in the front
-            if(player.isHost()){
-                msgList.add(String.valueOf(player.getId()));
-                msgList.add(player.getName());
-                msgList.add(String.valueOf(player.getPoints()));
-                msgList.add(String.valueOf(room.getPlayerPosition(player)));
-            }
-            else{
-                // add player id
-                otherPlayerMsgList.add(String.valueOf(player.getId()));
-                // add player name
-                otherPlayerMsgList.add(player.getName());
-                // add player points
-                otherPlayerMsgList.add(String.valueOf(player.getPoints()));
-                // add player position
-                otherPlayerMsgList.add(String.valueOf(room.getPlayerPosition(player)));
-            }
+    private Thread newRoomInfoBroadcastThread(){
+        if(broadcastThread != null){
+           broadcastThread.shutdown();
         }
-        msgList.addAll(otherPlayerMsgList);
-        return msgList;
+        DataPack dataPack = new DataPack(DataPack.A_ROOM_LOOKUP, DataPackUtil.getRoomsMessage(roomManager));
+        return new BroadcastThread(playerManager.getAllPlayers(), new RoomSelectingFilter(), dataPack);
     }
 
-    private List<String> getPlayerInfoMessage(Player player, Room room){
-        List<String> msgList = new ArrayList<>();
-        msgList.add(String.valueOf(player.getId()));
-        msgList.add(player.getName());
-        msgList.add(String.valueOf(player.getPoints()));
-        msgList.add(String.valueOf(room.getPlayerPosition(player)));
-        return msgList;
-    }
 
-    private List<String> getRoomInfoMessage(Room room){
-        List<String> msgList = new LinkedList<>();
-        // add room id
-        msgList.add(String.valueOf(room.getId()));
-        // add room name
-        msgList.add(room.getName());
-        // add number of players in the room
-        msgList.add(String.valueOf(room.getPlayers().size()));
-        // add room status
-        if(room.isPlaying())
-            msgList.add("1");
-        else
-            msgList.add("0");
-        return msgList;
-    }
 
     /**
      * Process the incoming data packs.
@@ -123,20 +87,27 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     String passwordMD5 = dataPack.getMessage(1).toUpperCase();
 
                     User user = Database.getUser(username);
-                    if(user == null){
+                    if(user == null || !user.getPasswordMD5().equals(passwordMD5)){
                         send(new DataPack(DataPack.A_LOGIN, false));
                     }
                     else{
                         // login successful
-                        if(user.getPasswordMD5().equals(passwordMD5)){
+                        List<String> msgList = new ArrayList<>();
+                        msgList.add(String.valueOf(user.getId()));
+                        msgList.add(String.valueOf(user.getPoints()));
+                        send(new DataPack(DataPack.A_LOGIN, true, msgList));
 
-                            List<String> msgList = new ArrayList<>();
-                            msgList.add(String.valueOf(user.getId()));
-                            msgList.add(String.valueOf(user.getPoints()));
-                            send(new DataPack(DataPack.A_LOGIN, true, msgList));
-
+                        Player currentPlayer = playerManager.getPlayer(user.getId());
+                        if(currentPlayer == null){
                             Player player = new Player(user, this);
                             playerManager.addPlayer(player);
+                        }
+                        else {
+                            // close the former client connection
+                            if(!currentPlayer.getSocket().equals(this)){
+                                currentPlayer.getSocket().close();
+                                currentPlayer.setSocket(this);
+                            }
                         }
                     }
                     return;
@@ -159,9 +130,9 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     return;
                 }
                 case DataPack.R_LOGOUT:{
-                    int playerIndex = Integer.valueOf(dataPack.getMessage(0));
+                    int playerId = Integer.valueOf(dataPack.getMessage(0));
 
-                    playerManager.removePlayer(playerIndex);
+                    playerManager.removePlayer(playerId);
                     send(new DataPack(DataPack.A_LOGOUT, true));
                     return;
                 }
@@ -177,10 +148,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     return;
                 }
                 case DataPack.R_ROOM_LOOKUP:{
-                    List<String> msgList = new LinkedList<>();
-                    for(Room room : roomManager.getRooms()){
-                        msgList.addAll(getRoomInfoMessage(room));
-                    }
+                    List<String> msgList = DataPackUtil.getRoomsMessage(roomManager);
                     dataPack.setCommand(DataPack.A_ROOM_LOOKUP);
                     dataPack.setSuccessful(true);
                     dataPack.setMessageList(msgList);
@@ -201,14 +169,20 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                         else{
                             room.addPlayer(player);
 
+                            // broadcast new room info
+                            newRoomInfoBroadcastThread().start();
+
                             // send room player info back
-                            send(new DataPack(DataPack.A_ROOM_ENTER, true, getRoomPlayerInfoMessage(room)));
+                            send(new DataPack(DataPack.A_ROOM_ENTER, true, DataPackUtil.getRoomPlayerInfoMessage(room)));
 
                             // send new player info to other players
-                            List<String> msgList = getPlayerInfoMessage(player, room);
+                            dataPack.setCommand(DataPack.E_ROOM_ENTER);
+                            dataPack.setDate(new Date());
+                            dataPack.setSuccessful(true);
+                            dataPack.setMessageList(DataPackUtil.getPlayerInfoMessage(player, room));
                             for(Player roomPlayer : room.getPlayers()){
                                 if(!roomPlayer.equals(player) && !roomPlayer.isRobot()){
-                                    roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_ENTER, true, msgList));
+                                    roomPlayer.getSocket().send(dataPack);
                                 }
                             }
                         }
@@ -222,7 +196,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
 
                     boolean isSuccessful = room.playerSelectPosition(player, position);
                     if(isSuccessful){
-                        List<String> msgList = getPlayerInfoMessage(player, room);
+                        List<String> msgList = DataPackUtil.getPlayerInfoMessage(player, room);
                         for(Player roomPlayer : room.getPlayers()){
                             if(!roomPlayer.isRobot()){
                                 roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_POSITION_SELECT, true, msgList));
@@ -238,11 +212,17 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
                     Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
-                    List<String> msgList = getPlayerInfoMessage(player, room);
+                    newRoomInfoBroadcastThread().start();
+
+                    List<String> msgList = DataPackUtil.getPlayerInfoMessage(player, room);
+                    dataPack.setCommand(DataPack.E_ROOM_EXIT);
+                    dataPack.setDate(new Date());
+                    dataPack.setSuccessful(true);
+                    dataPack.setMessageList(msgList);
                     // send player left message to other players
                     for(Player roomPlayer : room.getPlayers()){
                         if(!roomPlayer.equals(player)){
-                            roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_EXIT, true, msgList));
+                            roomPlayer.getSocket().send(dataPack);
                         }
                     }
 
@@ -265,6 +245,8 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
                     if(player.isHost()){
+                        newRoomInfoBroadcastThread().start();
+
                         room.setPlaying(true);
                         // send out game start signal to the players
                         for(Player roomPlayer : room.getPlayers()) {
@@ -282,6 +264,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
                     Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
                     room.setPlaying(false);
+                    newRoomInfoBroadcastThread().start();
 
                     for(Player roomPlayer : room.getPlayers()){
                         if(!roomPlayer.isRobot()){
@@ -299,7 +282,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     // add room player info to message list
                     List<String> msgList = new LinkedList<>();
                     msgList.add(String.valueOf(player.getId()));
-                    msgList.addAll(getRoomPlayerInfoMessage(room));
+                    msgList.addAll(DataPackUtil.getRoomPlayerInfoMessage(room));
                     dataPack.setMessageList(msgList);
 
                     // set datapack command
