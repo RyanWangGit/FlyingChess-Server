@@ -20,6 +20,12 @@ public class Player extends User {
         this.status = ROOM_SELECTING;
     }
 
+    public Player(User user){
+        super(user);
+        this.socket = null;
+        this.status = ROOM_SELECTING;
+    }
+
     public boolean isRobot() { return this.id <= -1 && this.id >= -4; }
 
     public boolean isHost() { return this.isHost; }
