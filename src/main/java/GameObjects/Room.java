@@ -1,5 +1,7 @@
 package GameObjects;
 
+import GameObjects.Player.Player;
+
 import java.util.*;
 
 /**
@@ -10,18 +12,30 @@ public class Room {
     private String name = null;
     private Player[] readyPlayers = null;
     private boolean isPlaying = false;
-    private Collection<Player>  players = null;
+    private Map<Integer, Player>  players = null;
 
     public Room(int id, String name, Player host){
         this.id = id;
         this.name = name;
         this.readyPlayers = new Player[4];
         this.isPlaying = false;
-        this.players = new HashSet<>();
-        this.players.add(host);
+        this.players = new HashMap<>();
+        this.players.put(host.getId(), host);
     }
 
-    public void setPlaying(boolean isPlaying) { this.isPlaying = isPlaying; }
+    public void setPlaying(boolean isPlaying) {
+        this.isPlaying = isPlaying;
+        if(isPlaying){
+            for(Player player : players.values()){
+                player.setStatus(Player.PLAYING);
+            }
+        }
+        else{
+            for(Player player : players.values()){
+                player.setStatus(Player.ROOM_WAITING);
+            }
+        }
+    }
 
     public boolean isPlaying() { return this.isPlaying; }
 
@@ -33,13 +47,16 @@ public class Room {
         return this.name;
     }
 
-    public Collection<Player> getPlayers() { return this.players; }
+    public Collection<Player> getPlayers() { return this.players.values(); }
 
     /**
      * Add the player to the room.
      * @param player The player object.
      */
-    public void addPlayer(Player player) { this.players.add(player); }
+    public void addPlayer(Player player) {
+        player.setStatus(Player.ROOM_WAITING);
+        this.players.put(player.getId(), player);
+    }
 
     public void removePlayer(Player player){
         // remove the player from ready players' array.
@@ -48,32 +65,35 @@ public class Room {
             if(player.equals(readyPlayer))
                 readyPlayers[i] = null;
         }
-
-        this.players.remove(player);
+        player.setStatus(Player.ROOM_SELECTING);
+        this.players.remove(player.getId());
     }
 
     public boolean playerSelectPosition(Player player, int position){
-        if(position < -1 || position >= 4 || !this.players.contains(player))
+        if(position < -1 || position >= 4 || (!player.isRobot() && !this.players.containsKey(player.getId())))
             return false;
 
-        // if the player wants to unready
-        if(position == -1){
-            for(int i = 0;i < 4;i ++){
-                Player readyPlayer = readyPlayers[i];
-                if(readyPlayer.equals(player)){
-                    readyPlayers[i] = null;
-                    return true;
-                }
+        // remove the player from the current position
+        for(int i = 0;i < 4;i ++){
+            Player readyPlayer = readyPlayers[i];
+            if(player.equals(readyPlayer)){
+                readyPlayers[i] = null;
+                if(player.isRobot())
+                    players.remove(player.getId());
+                break;
             }
         }
-        else{
+
+        // if the player wants to pick another position
+        if(position != -1){
             if(readyPlayers[position] != null)
                 return false;
 
             readyPlayers[position] = player;
-            return true;
+            if(player.isRobot())
+                players.put(player.getId(), player);
         }
-        return false;
+        return true;
     }
 
     public int getPlayerPosition(Player player){
