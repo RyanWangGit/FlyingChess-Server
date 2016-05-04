@@ -1,8 +1,8 @@
 package Managers;
 
-import DataPack.DataPack;
 import GameObjects.Player.Player;
 import GameObjects.User;
+import Server.DataPackSocket;
 import edu.emory.mathcs.backport.java.util.Collections;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,10 +17,16 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class PlayerManager {
     private static Logger logger = LogManager.getLogger(PlayerManager.class.getName());
-    private Map<Integer, Player> allPlayers = null;
+    /**
+     * 2 maps to store the player object
+     * to provide O(1) look up speed by 2 unique keys
+     */
+    private Map<Integer, Player> idPlayerMap = null;
+    private Map<DataPackSocket, Player> socketPlayerMap = null;
 
     public PlayerManager(){
-        this.allPlayers = new ConcurrentHashMap<>(100, 0.75f);
+        this.idPlayerMap = new ConcurrentHashMap<>(100, 0.75f);
+        this.socketPlayerMap = new ConcurrentHashMap<>(100, 0.75f);
     }
 
     public Player getPlayer(int id) {
@@ -28,28 +34,32 @@ public class PlayerManager {
         if(id < 0 && id >= -4)
             return new Player(new User(id, "Robot", null, 0), null);
         else
-            return this.allPlayers.get(id);
-
+            return this.idPlayerMap.get(id);
     }
 
-    public void addPlayer(Player player) { this.allPlayers.put(player.getId(), player); }
+    public Player getPlayer(DataPackSocket socket){
+        return this.socketPlayerMap.get(socket);
+    }
+
+    public void addPlayer(Player player) {
+        this.idPlayerMap.put(player.getId(), player);
+        this.socketPlayerMap.put(player.getSocket(), player);
+    }
 
     public void removePlayer(Player player){
         try{
-            player.getSocket().send(new DataPack(DataPack.TERMINATE));
+            if(player == null)
+                return;
+            this.idPlayerMap.remove(player.getId());
+            this.socketPlayerMap.remove(player.getSocket());
             player.getSocket().close();
-            this.allPlayers.remove(player.getId());
         } catch(IOException e){
             logger.catching(e);
         }
     }
 
-    public void removePlayer(int playerId){
-        removePlayer(this.allPlayers.get(playerId));
-    }
-
     public Collection<Player> getAllPlayers(){
-        return Collections.unmodifiableCollection(this.allPlayers.values());
+        return Collections.unmodifiableCollection(this.idPlayerMap.values());
     }
 
 }
