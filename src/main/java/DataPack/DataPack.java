@@ -51,6 +51,8 @@ public class DataPack {
     public final static int E_GAME_PROCEED_DICE = 4100;
     public final static int R_GAME_PROCEED_PLANE = 4001;
     public final static int E_GAME_PROCEED_PLANE = 4101;
+    public final static int E_GAME_PLAYER_DISCONNECTED = 4102;
+    public final static int E_GAME_PLAYER_CONNECTED = 4103;
     public final static int R_GAME_FINISHED = 4009;
     public final static int E_GAME_FINISHED = 4109;
 
