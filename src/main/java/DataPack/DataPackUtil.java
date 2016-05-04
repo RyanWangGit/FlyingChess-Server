@@ -2,7 +2,7 @@ package DataPack;
 
 import GameObjects.Player.Player;
 import GameObjects.Room;
-import Managers.RoomManager;
+import Managers.ObjectManager;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -11,9 +11,9 @@ import java.util.List;
  * Created by Ryan on 16/5/2.
  */
 public class DataPackUtil {
-    public static List<String> getRoomsMessage(RoomManager roomManager){
+    public static List<String> getRoomsMessage(ObjectManager objectManager){
         List<String> msgList = new LinkedList<>();
-        for(Room room : roomManager.getAllRooms()){
+        for(Room room : objectManager.getAllRooms()){
             msgList.addAll(DataPackUtil.getRoomInfoMessage(room));
         }
         return msgList;
