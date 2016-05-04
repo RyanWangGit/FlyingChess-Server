@@ -1,10 +1,14 @@
 package Server;
 
 import DataPack.DataPack;
+import DataPack.DataPackUtil;
 import Database.Database;
-import GameObjects.Player;
+import GameObjects.Player.Player;
+import GameObjects.Player.RoomSelectingFilter;
 import GameObjects.Room;
 import GameObjects.User;
+import Managers.PlayerManager;
+import Managers.RoomManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,11 +26,20 @@ import java.util.List;
  */
 class DataPackSocketRunnable extends DataPackSocket implements Runnable {
     private static Logger logger = LogManager.getLogger(DataPackSocketRunnable.class.getName());
-    private SSLServer parent = null;
+    private RoomManager roomManager = null;
+    private PlayerManager playerManager = null;
+    private BroadcastThread broadcastThread = null;
 
-    public DataPackSocketRunnable(SSLServer parent, Socket socket) throws IOException{
+    public DataPackSocketRunnable(RoomManager roomManager, PlayerManager playerManager, Socket socket) throws IOException{
         super(socket);
-        this.parent = parent;
+        this.roomManager = roomManager;
+        this.playerManager = playerManager;
+    }
+
+    public DataPackSocketRunnable(PlayerManager playerManager, RoomManager roomManager, Socket socket) throws IOException{
+        super(socket);
+        this.playerManager = playerManager;
+        this.roomManager = roomManager;
     }
 
     public void run(){
@@ -45,44 +58,70 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
         } catch (Exception e){
             logger.catching(e);
         }
+        finally {
+            playerManager.removePlayer(playerManager.getPlayer(this));
+        }
     }
+
+    private Thread newRoomInfoBroadcastThread(){
+        if(broadcastThread != null){
+            broadcastThread.shutdown();
+            this.broadcastThread = null;
+        }
+        DataPack dataPack = new DataPack(DataPack.A_ROOM_LOOKUP, DataPackUtil.getRoomsMessage(roomManager));
+        this.broadcastThread = new BroadcastThread(playerManager.getAllPlayers(), new RoomSelectingFilter(), dataPack);
+        return this.broadcastThread;
+    }
+
+
 
     /**
      * Process the incoming data packs.
      *
      * @param dataPack The data pack to be processed.
      */
-    private void processDataPack(DataPack dataPack) {
+    private void processDataPack(DataPack dataPack) throws SocketException, IOException{
         try{
             switch(dataPack.getCommand()){
                 case DataPack.INVALID:{
                     logger.warn("DataPack Invalid.");
                     return;
                 }
-                case DataPack.LOGIN:{
+                case DataPack.R_LOGIN:{
                     String username = dataPack.getMessage(0);
                     String passwordMD5 = dataPack.getMessage(1).toUpperCase();
 
                     User user = Database.getUser(username);
-                    if(user == null){
-                        send(new DataPack(DataPack.LOGIN, false));
+                    if(user == null || !user.getPasswordMD5().equals(passwordMD5)){
+                        send(new DataPack(DataPack.A_LOGIN, false));
                     }
                     else{
                         // login successful
-                        if(user.getPasswordMD5().equals(passwordMD5)){
+                        List<String> msgList = new ArrayList<>();
+                        msgList.add(String.valueOf(user.getId()));
+                        msgList.add(String.valueOf(user.getPoints()));
+                        send(new DataPack(DataPack.A_LOGIN, true, msgList));
 
-                            List<String> msgList = new ArrayList<>();
-                            msgList.add(String.valueOf(user.getId()));
-                            msgList.add(String.valueOf(user.getPoints()));
-                            send(new DataPack(DataPack.LOGIN, true, msgList));
-
+                        Player currentPlayer = playerManager.getPlayer(user.getId());
+                        if(currentPlayer == null){
                             Player player = new Player(user, this);
-                            parent.addPlayer(player);
+                            playerManager.addPlayer(player);
+                        }
+                        else {
+                            // close the former client connection
+                            if(!currentPlayer.getSocket().equals(this)){
+                                try{
+                                    currentPlayer.getSocket().close();
+                                } catch(IOException e){
+                                    logger.warn("Former connection has been closed.");
+                                }
+                                currentPlayer.setSocket(this);
+                            }
                         }
                     }
                     return;
                 }
-                case DataPack.REGISTER:{
+                case DataPack.R_REGISTER:{
                     String username = dataPack.getMessage(0);
                     String passwordMD5 = dataPack.getMessage(1).toUpperCase();
 
@@ -92,171 +131,214 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
 
                         int userIndex = Database.addUser(username, passwordMD5);
                         msgList.add(String.valueOf(userIndex));
-                        send(new DataPack(DataPack.REGISTER, true, msgList));
+                        send(new DataPack(DataPack.A_REGISTER, true, msgList));
                     }
                     else{
-                        send(new DataPack(DataPack.REGISTER, false));
+                        send(new DataPack(DataPack.A_REGISTER, false));
                     }
                     return;
                 }
-                case DataPack.LOGOUT:{
-                    int playerIndex = Integer.valueOf(dataPack.getMessage(0));
+                case DataPack.R_LOGOUT:{
+                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
 
-                    parent.removePlayer(parent.getPlayer(playerIndex));
-                    send(new DataPack(DataPack.LOGOUT, true));
+                    playerManager.removePlayer(player);
+                    send(new DataPack(DataPack.A_LOGOUT, true));
                     return;
                 }
-                case DataPack.ROOM_CREATE:{
-                    Integer playerId = Integer.valueOf(dataPack.getMessage(0));
+                case DataPack.R_ROOM_CREATE:{
+                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
                     String roomName = dataPack.getMessage(1);
 
-                    int roomId = parent.addRoom(roomName, parent.getPlayer(playerId));
+                    int roomId = roomManager.addRoom(roomName, player);
+
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(roomId));
+                    send(new DataPack(DataPack.A_ROOM_CREATE, true, msgList));
+
+                    newRoomInfoBroadcastThread().start();
                     logger.info("Room created: " + roomId + " " + roomName);
-                    send(new DataPack(DataPack.ROOM_CREATE, true, msgList));
                     return;
                 }
-                case DataPack.ROOM_ENTER:{
-                    Player player = parent.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = parent.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                case DataPack.R_ROOM_LOOKUP:{
+                    List<String> msgList = DataPackUtil.getRoomsMessage(roomManager);
+                    dataPack.setCommand(DataPack.A_ROOM_LOOKUP);
+                    dataPack.setSuccessful(true);
+                    dataPack.setMessageList(msgList);
+                    send(dataPack);
+                    return;
+                }
+                case DataPack.R_ROOM_ENTER:{
+                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
                     if(room == null || player == null){
-                        send(new DataPack(DataPack.ROOM_ENTER, false));
+                        send(new DataPack(DataPack.A_ROOM_ENTER, false));
                     }
                     else{
                         // if room has reached its limit
-                        if(room.getPlayers().size() == 4){
-                            send(new DataPack(DataPack.ROOM_ENTER, false));
+                        if(room.getPlayers().size() >= 4){
+                            send(new DataPack(DataPack.A_ROOM_ENTER, false));
                         }
                         else{
                             room.addPlayer(player);
-                            // send room user info back
-                            List<String> msgList = new LinkedList<>();
-                            List<String> otherPlayerMsgList = new LinkedList<>();
-                            for(Player roomPlayer : room.getPlayers()){
-                                // put the host player in the front
-                                if(roomPlayer.isHost()){
-                                    msgList.add(String.valueOf(roomPlayer.getId()));
-                                    msgList.add(roomPlayer.getName());
-                                    msgList.add(String.valueOf(roomPlayer.getPoints()));
-                                }
-                                else{
-                                    // add user id
-                                    otherPlayerMsgList.add(String.valueOf(roomPlayer.getId()));
-                                    // add user name
-                                    otherPlayerMsgList.add(roomPlayer.getName());
-                                    // add user points
-                                    otherPlayerMsgList.add(String.valueOf(roomPlayer.getPoints()));
-                                }
-                            }
-                            msgList.addAll(otherPlayerMsgList);
-                            send(new DataPack(DataPack.ROOM_ENTER, true, msgList));
+
+                            // broadcast new room info
+                            newRoomInfoBroadcastThread().start();
+
+                            // send room player info back
+                            send(new DataPack(DataPack.A_ROOM_ENTER, true, DataPackUtil.getRoomPlayerInfoMessage(room)));
 
                             // send new player info to other players
-                            msgList.clear();
-                            msgList.add(String.valueOf(player.getId()));
-                            msgList.add(player.getName());
-                            msgList.add(String.valueOf(player.getPoints()));
+                            dataPack.setCommand(DataPack.E_ROOM_ENTER);
+                            dataPack.setDate(new Date());
+                            dataPack.setSuccessful(true);
+                            dataPack.setMessageList(DataPackUtil.getPlayerInfoMessage(player, room));
                             for(Player roomPlayer : room.getPlayers()){
-                                if(!roomPlayer.equals(player)){
-                                    roomPlayer.getSocket().send(new DataPack(DataPack.ROOM_USER_ENTERED, true, msgList));
+                                if(!roomPlayer.equals(player) && !roomPlayer.isRobot()){
+                                    roomPlayer.getSocket().send(dataPack);
                                 }
                             }
                         }
                     }
                     return;
                 }
-                case DataPack.ROOM_LOOKUP:{
-                    List<String> msgList = new ArrayList<>();
-                    for(Room room : parent.getRooms()){
-                        // add room id
-                        msgList.add(String.valueOf(room.getId()));
-                        // add room name
-                        msgList.add(room.getName());
-                        // add number of players in the room
-                        msgList.add(String.valueOf(room.getPlayers().size()));
-                        // add room status
-                        if(room.isPlaying())
-                            msgList.add("1");
-                        else
-                            msgList.add("0");
-                    }
-                    send(new DataPack(DataPack.ROOM_LOOKUP, true, msgList));
-                    return;
-                }
-                case DataPack.ROOM_SELECT_POSITION:{
-                    Player player = parent.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = parent.getRoom(Integer.valueOf(dataPack.getMessage(1)));
-                    int position = Integer.valueOf(dataPack.getMessage(2));
+                case DataPack.R_ROOM_POSITION_SELECT:{
+                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                    int position = Integer.valueOf(dataPack.getMessage(4));
 
                     boolean isSuccessful = room.playerSelectPosition(player, position);
                     if(isSuccessful){
-                        List<String> msgList = new ArrayList<>();
-                        msgList.add(String.valueOf(player.getId()));
-                        msgList.add(String.valueOf(position));
-                        player.getSocket().send(new DataPack(DataPack.ROOM_SELECT_POSITION, true));
+                        List<String> msgList = DataPackUtil.getPlayerInfoMessage(player, room);
                         for(Player roomPlayer : room.getPlayers()){
-                            if(!roomPlayer.equals(player)){
-                                roomPlayer.getSocket().send(new DataPack(DataPack.ROOM_USER_PICK_POSITION, msgList));
+                            if(!roomPlayer.isRobot()){
+                                roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_POSITION_SELECT, true, msgList));
                             }
                         }
                     }
                     else{
-                        player.getSocket().send(new DataPack(DataPack.ROOM_SELECT_POSITION, false));
+                        send(new DataPack(DataPack.E_ROOM_POSITION_SELECT, false));
                     }
                     return;
                 }
-                case DataPack.ROOM_EXIT:{
-                    Player player = parent.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = parent.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                case DataPack.R_ROOM_EXIT:{
+                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+
+                    List<String> msgList = DataPackUtil.getPlayerInfoMessage(player, room);
+                    dataPack.setCommand(DataPack.E_ROOM_EXIT);
+                    dataPack.setDate(new Date());
+                    dataPack.setSuccessful(true);
+                    dataPack.setMessageList(msgList);
+                    // send player left message to other players
+                    for(Player roomPlayer : room.getPlayers()){
+                        if(!roomPlayer.equals(player)){
+                            roomPlayer.getSocket().send(dataPack);
+                        }
+                    }
 
                     // remove the room if host exits
-                    if(player.isHost()){
-                        for(Player roomPlayer : room.getPlayers()){
-                            send(new DataPack(DataPack.ROOM_EXIT, true));
-                        }
+                    if(player.isHost()) {
+                        roomManager.removeRoom(room);
+                        player.setHost(false);
                     }
                     else{
                         room.removePlayer(player);
-                        send(new DataPack(DataPack.ROOM_EXIT, true));
-
-                        List<String> msgList = new ArrayList<>();
-                        msgList.add(String.valueOf(player.getId()));
-                        // send player left message to other users
-                        for(Player roomPlayer : room.getPlayers()){
-                            roomPlayer.getSocket().send(new DataPack(DataPack.ROOM_USER_LEFT, true, msgList));
-                        }
                     }
+
+                    // send back operation result message
+                    send(new DataPack(DataPack.A_ROOM_EXIT, true));
+
+                    newRoomInfoBroadcastThread().start();
+
                     return;
                 }
-                case DataPack.GAME_START:{
-                    Player player = parent.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = parent.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                case DataPack.R_GAME_START:{
+                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
                     if(player.isHost()){
                         room.setPlaying(true);
-                        // send out game start signal and positions info to the users
+                        // send out game start signal to the players
                         for(Player roomPlayer : room.getPlayers()) {
-                            roomPlayer.getSocket().send(new DataPack(DataPack.GAME_START, true));
+                            if(!roomPlayer.isRobot())
+                                roomPlayer.getSocket().send(new DataPack(DataPack.E_GAME_START, true));
                         }
+
+                        newRoomInfoBroadcastThread().start();
                     }
                     else {
-                        player.getSocket().send(new DataPack(DataPack.GAME_START, false));
+                        send(new DataPack(DataPack.E_GAME_START, false));
                     }
                     return;
                 }
                 // the following 2 commands' logic is basically the same(simply forward the datapack)
-                case DataPack.GAME_FINISHED:
-                case DataPack.GAME_PROCEED:{
-                    Player player = parent.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = parent.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                case DataPack.R_GAME_FINISHED:{
+                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                    room.setPlaying(false);
+                    newRoomInfoBroadcastThread().start();
 
+                    for(Player roomPlayer : room.getPlayers()){
+                        if(!roomPlayer.isRobot()){
+                            if(roomPlayer.equals(player)){
+                                player.setPoints(player.getPoints() + 10);
+                                Database.updateUser(player);
+                            }
+                            else{
+                                roomPlayer.setPoints(roomPlayer.getPoints() - 5);
+                                Database.updateUser(roomPlayer);
+                            }
+                        }
+                    }
+
+                    // add room player info to message list
+                    List<String> msgList = new LinkedList<>();
+                    msgList.add(String.valueOf(player.getId()));
+                    msgList.addAll(DataPackUtil.getRoomPlayerInfoMessage(room));
+                    dataPack.setMessageList(msgList);
+
+                    // set datapack command
+                    dataPack.setCommand(DataPack.E_GAME_FINISHED);
                     // update datapack's time
                     dataPack.setDate(new Date());
 
                     // simply forward the datapack to the users in the same room
                     for(Player roomPlayer : room.getPlayers()) {
-                        if(!roomPlayer.equals(player)){
+                        if(!roomPlayer.equals(player) && !roomPlayer.isRobot()){
+                            roomPlayer.getSocket().send(dataPack);
+                        }
+                    }
+                    return;
+                }
+                case DataPack.R_GAME_PROCEED_DICE:{
+                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+
+                    // set the command
+                    dataPack.setCommand(DataPack.E_GAME_PROCEED_DICE);
+                    // update datapack's time
+                    dataPack.setDate(new Date());
+
+                    // simply forward the datapack to the users in the same room
+                    for(Player roomPlayer : room.getPlayers()) {
+                        if(!roomPlayer.equals(player) && !roomPlayer.isRobot()){
+                            roomPlayer.getSocket().send(dataPack);
+                        }
+                    }
+                    return;
+                }
+                case DataPack.R_GAME_PROCEED_PLANE:{
+                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+
+                    // set the command
+                    dataPack.setCommand(DataPack.E_GAME_PROCEED_PLANE);
+                    // update datapack's time
+                    dataPack.setDate(new Date());
+
+                    // simply forward the datapack to the users in the same room
+                    for(Player roomPlayer : room.getPlayers()) {
+                        if(!roomPlayer.equals(player) && !roomPlayer.isRobot()){
                             roomPlayer.getSocket().send(dataPack);
                         }
                     }
@@ -267,9 +349,6 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
             }
         } catch(IndexOutOfBoundsException e){
             logger.warn("DataPack missing necessary parameters.");
-        }
-        catch(Exception e){
-            logger.catching(e);
         }
     }
 
