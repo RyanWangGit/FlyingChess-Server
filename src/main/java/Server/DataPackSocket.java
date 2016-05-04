@@ -43,14 +43,10 @@ public class DataPackSocket {
 
         String json = new String(bytes, "UTF-8");
 
-        DataPack dataPack = dataPackGson.fromJson(json, DataPack.class);
-
-        if(dataPack.getCommand() != DataPack.R_ROOM_LOOKUP){
-            logger.debug(json);
-        }
+        logger.debug(json);
 
         // parse the datapack and return
-        return dataPack;
+        return dataPackGson.fromJson(json, DataPack.class);
     }
 
     /**
@@ -77,9 +73,8 @@ public class DataPackSocket {
             this.os.writeInt(bytesSize);
             this.os.write(sendBytes);
             this.os.flush();
-            if(dataPack.getCommand() != DataPack.R_ROOM_LOOKUP){
-                logger.debug(new String(sendBytes));
-            }
+            logger.debug(new String(sendBytes));
+
         } catch(IOException e){
             logger.catching(e);
         }
