@@ -4,8 +4,8 @@ import Config.Config;
 import DataPack.DataPack;
 import Database.Database;
 import GameObjects.Player.Player;
-import Managers.PlayerManager;
-import Managers.RoomManager;
+import GameObjects.Player.PlayerManager;
+import GameObjects.Room.RoomManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -79,7 +79,7 @@ public class SSLServer implements Server {
         kmf.init(ks, keyPassword);
 
         // create ssl context
-        SSLContext context = SSLContext.getInstance("SSLv3");
+        SSLContext context = SSLContext.getInstance("TLS");
         context.init(kmf.getKeyManagers(), null, null);
 
         // generate ssl server socket factory
