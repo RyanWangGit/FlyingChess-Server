@@ -27,7 +27,7 @@ public class User {
 
     public String getName() { return this.userName; }
 
-    public String getPasswordMD5() { return this.passwordMD5; }
+    public String getPassword() { return this.passwordMD5; }
 
     public int getPoints() { return this.points; }
 
