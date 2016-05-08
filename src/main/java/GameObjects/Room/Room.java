@@ -1,4 +1,4 @@
-package GameObjects;
+package GameObjects.Room;
 
 import GameObjects.Player.Player;
 
@@ -8,18 +8,20 @@ import java.util.*;
  * Created by Ryan on 16/4/21.
  */
 public class Room {
+    private RoomManager parent = null;
     private int id = -1;
     private String name = null;
     private Player[] readyPlayers = null;
     private boolean isPlaying = false;
     private Map<Integer, Player>  players = null;
 
-    public Room(int id, String name, Player host){
+    public Room(int id, String name, RoomManager parent){
         this.id = id;
         this.name = name;
         this.readyPlayers = new Player[4];
         this.isPlaying = false;
         this.players = new HashMap<>();
+        this.parent = parent;
         this.players.put(host.getId(), host);
     }
 
@@ -102,5 +104,9 @@ public class Room {
                 return i;
         }
         return -1;
+    }
+
+    public void setHost(Player player){
+
     }
 }

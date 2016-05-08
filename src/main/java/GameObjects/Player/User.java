@@ -1,4 +1,4 @@
-package GameObjects;
+package GameObjects.Player;
 
 /**
  * Created by Ryan on 16/4/27.
