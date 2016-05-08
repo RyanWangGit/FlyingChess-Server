@@ -40,7 +40,9 @@ public class Room {
      */
     public void addPlayer(Player player) {
         player.setStatus(Player.ROOM_WAITING);
+        player.setRoom(this);
         this.players.put(player.getId(), player);
+        parent.roomListChanged(this);
     }
 
     public void setHost(Player host){
@@ -95,7 +97,9 @@ public class Room {
                 readyPlayers[i] = null;
         }
         player.setStatus(Player.ROOM_SELECTING);
+        player.setRoom(null);
         this.players.remove(player.getId());
+        parent.roomListChanged(this);
     }
 
     public void startGame() {
@@ -103,6 +107,7 @@ public class Room {
         for(Player player : players.values()){
             player.setStatus(Player.PLAYING);
         }
+        parent.roomListChanged(this);
     }
 
     public void finishGame(){
@@ -110,5 +115,6 @@ public class Room {
         for(Player player : players.values()){
             player.setStatus(Player.ROOM_WAITING);
         }
+        parent.roomListChanged(this);
     }
 }
