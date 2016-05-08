@@ -3,8 +3,8 @@ package Server;
 import DataPack.DataPack;
 import DataPack.DataPackUtil;
 import Database.Database;
-import GameObjects.Player.Player;
-import GameObjects.Room.Room;
+import GameObjects.Player;
+import GameObjects.Room;
 import GameObjects.ObjectManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +24,6 @@ import java.util.List;
 class DataPackSocketRunnable extends DataPackSocket implements Runnable {
     private static Logger logger = LogManager.getLogger(DataPackSocketRunnable.class.getName());
     private ObjectManager objectManager = null;
-    private BroadcastThread broadcastThread = null;
 
     public DataPackSocketRunnable(ObjectManager objectManager, Socket socket) throws IOException{
         super(socket);
@@ -93,7 +92,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     return;
                 }
                 case DataPack.R_LOGOUT:{
-                    Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0));
+                    Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
 
                     objectManager.removePlayer(player);
 
@@ -202,18 +201,16 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     return;
                 }
                 case DataPack.R_GAME_START:{
-                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                    Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
                     if(player.isHost()){
-                        room.setPlaying(true);
+                        room.startGame();
                         // send out game start signal to the players
                         for(Player roomPlayer : room.getPlayers()) {
                             if(!roomPlayer.isRobot())
                                 roomPlayer.getSocket().send(new DataPack(DataPack.E_GAME_START, true));
                         }
-
-                        newRoomInfoBroadcastThread().start();
                     }
                     else {
                         send(new DataPack(DataPack.E_GAME_START, false));
@@ -222,10 +219,9 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                 }
                 // the following 2 commands' logic is basically the same(simply forward the datapack)
                 case DataPack.R_GAME_FINISHED:{
-                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
-                    room.setPlaying(false);
-                    newRoomInfoBroadcastThread().start();
+                    Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                    room.finishGame();
 
                     for(Player roomPlayer : room.getPlayers()){
                         if(!roomPlayer.isRobot()){
@@ -260,8 +256,8 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     return;
                 }
                 case DataPack.R_GAME_PROCEED_DICE:{
-                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                    Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
                     // set the command
                     dataPack.setCommand(DataPack.E_GAME_PROCEED_DICE);
@@ -277,8 +273,8 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     return;
                 }
                 case DataPack.R_GAME_PROCEED_PLANE:{
-                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                    Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
                     // set the command
                     dataPack.setCommand(DataPack.E_GAME_PROCEED_PLANE);
