@@ -1,7 +1,7 @@
 package Database;
 
 import Config.Config;
-import GameObjects.Player.User;
+import GameObjects.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -108,7 +108,7 @@ public class Database {
     }
 
     public static void updateUser(User user){
-        String sql = "UPDATE Users SET PasswordMD5 = '" + user.getPasswordMD5() + "',Points = '" + user.getPoints()
+        String sql = "UPDATE Users SET PasswordMD5 = '" + user.getPassword() + "',Points = '" + user.getPoints()
                 + "' WHERE ID = '" + user.getId() + "'";
         try{
             if(conn.isClosed())
