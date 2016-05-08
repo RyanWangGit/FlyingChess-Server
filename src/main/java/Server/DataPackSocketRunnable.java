@@ -4,9 +4,8 @@ import DataPack.DataPack;
 import DataPack.DataPackUtil;
 import Database.Database;
 import GameObjects.Player.Player;
-import GameObjects.Player.RoomSelectingFilter;
-import GameObjects.Room;
-import Managers.ObjectManager;
+import GameObjects.Room.Room;
+import GameObjects.ObjectManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -54,9 +53,6 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
     }
 
 
-
-
-
     /**
      * Process the incoming data packs.
      *
@@ -73,7 +69,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     String playerName = dataPack.getMessage(0);
                     String password = dataPack.getMessage(1).toUpperCase();
 
-                    Player player = objectManager.addPlayer(playerName, password);
+                    Player player = objectManager.createPlayer(playerName, password);
 
                     // login successful
                     if(player != null){
@@ -108,7 +104,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
                     String roomName = dataPack.getMessage(1);
 
-                    Room room = objectManager.addRoom(roomName, player);
+                    Room room = objectManager.createRoom(roomName, player);
 
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(room.getId()));
@@ -139,9 +135,6 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                         else{
                             room.addPlayer(player);
 
-                            // broadcast new room info
-                            newRoomInfoBroadcastThread().start();
-
                             // send room player info back
                             send(new DataPack(DataPack.A_ROOM_ENTER, true, DataPackUtil.getRoomPlayerInfoMessage(room)));
 
@@ -160,8 +153,8 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     return;
                 }
                 case DataPack.R_ROOM_POSITION_SELECT:{
-                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                    Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
                     int position = Integer.valueOf(dataPack.getMessage(4));
 
                     boolean isSuccessful = room.playerSelectPosition(player, position);
@@ -179,8 +172,8 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     return;
                 }
                 case DataPack.R_ROOM_EXIT:{
-                    Player player = playerManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
-                    Room room = roomManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                    Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
                     List<String> msgList = DataPackUtil.getPlayerInfoMessage(player, room);
                     dataPack.setCommand(DataPack.E_ROOM_EXIT);
@@ -196,7 +189,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
 
                     // remove the room if host exits
                     if(player.isHost()) {
-                        roomManager.removeRoom(room);
+                        objectManager.removeRoom(room);
                         player.setHost(false);
                     }
                     else{
@@ -205,8 +198,6 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
 
                     // send back operation result message
                     send(new DataPack(DataPack.A_ROOM_EXIT, true));
-
-                    newRoomInfoBroadcastThread().start();
 
                     return;
                 }
