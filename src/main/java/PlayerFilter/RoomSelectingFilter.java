@@ -1,4 +1,6 @@
-package GameObjects.Player;
+package PlayerFilter;
+
+import GameObjects.Player;
 
 /**
  * Created by Ryan on 16/5/2.
