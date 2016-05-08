@@ -68,10 +68,6 @@ public class ObjectManager {
         }
     }
 
-    public Player getPlayer(DataPackSocket socket){
-        return playerManager.getPlayer(socket);
-    }
-
     public Player getPlayer(int playerId){
         return playerManager.getPlayer(playerId);
     }
@@ -82,8 +78,8 @@ public class ObjectManager {
 
     public Room createRoom(String roomName, Player host){
         Room room = roomManager.createRoom(roomName);
-        room.setHost(host);
         room.addPlayer(host);
+        room.setHost(host);
         return room;
     }
 
@@ -111,22 +107,19 @@ class PlayerManager {
      * to provide O(1) look up speed by 2 unique keys
      */
     private ObjectManager parent = null;
-    private Map<Integer, Player> idPlayerMap = null;
-    private Map<DataPackSocket, Player> socketPlayerMap = null;
+    private Map<Integer, Player> playerMap = null;
 
     public PlayerManager(ObjectManager parent){
-        this.idPlayerMap = new ConcurrentHashMap<>(100, 0.75f);
-        this.socketPlayerMap = new ConcurrentHashMap<>(100, 0.75f);
+        this.playerMap = new ConcurrentHashMap<>(100, 0.75f);
         this.parent = parent;
     }
 
     public Player createPlayer(User user){
         // get former connection
-        Player currentPlayer = this.idPlayerMap.get(user.getId());
+        Player currentPlayer = this.playerMap.get(user.getId());
         if(currentPlayer == null){
             Player player = new Player(user, this);
-            this.idPlayerMap.put(player.getId(), player);
-            this.socketPlayerMap.put(player.getSocket(), player);
+            this.playerMap.put(player.getId(), player);
             return player;
         }
         else {
@@ -151,19 +144,14 @@ class PlayerManager {
         if(id < 0 && id >= -4)
             return new Player(new User(id, "Robot", null, 0), null);
         else
-            return this.idPlayerMap.get(id);
-    }
-
-    public Player getPlayer(DataPackSocket socket){
-        return this.socketPlayerMap.get(socket);
+            return this.playerMap.get(id);
     }
 
     public void removePlayer(Player player){
         try{
             if(player == null)
                 return;
-            this.idPlayerMap.remove(player.getId());
-            this.socketPlayerMap.remove(player.getSocket());
+            this.playerMap.remove(player.getId());
             player.getSocket().close();
         } catch(IOException e){
             logger.catching(e);
@@ -171,7 +159,7 @@ class PlayerManager {
     }
 
     public Collection<Player> getAllPlayers(){
-        return Collections.unmodifiableCollection(this.idPlayerMap.values());
+        return Collections.unmodifiableCollection(this.playerMap.values());
     }
 }
 
@@ -197,7 +185,12 @@ class RoomManager {
         return room;
     }
 
-    public void removeRoom(Room room) { this.rooms.remove(room.getId()); }
+    public void removeRoom(Room room) {
+        for(Player roomPlayer : room.getPlayers()){
+            roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_EXIT));
+        }
+        this.rooms.remove(room.getId());
+    }
 
     protected void roomListChanged(Room changedRoom){
         parent.roomListChanged(changedRoom);
