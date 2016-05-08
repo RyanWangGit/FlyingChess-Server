@@ -10,6 +10,7 @@ public class Player extends User {
     private DataPackSocket socket = null;
     private int status = 0;
     private PlayerManager parent = null;
+    private Room room = null;
     public static final int ROOM_SELECTING = 0;
     public static final int ROOM_WAITING = 1;
     public static final int PLAYING = 2;
@@ -52,4 +53,8 @@ public class Player extends User {
     public int getStatus() { return this.status; }
 
     public void setStatus(int status) { this.status = status; }
+
+    public Room getRoom(){ return room; }
+
+    protected void setRoom(Room room) { this.room = room; }
 }
