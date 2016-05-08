@@ -3,11 +3,11 @@ package Server;
 import Config.Config;
 import DataPack.DataPack;
 import Database.Database;
-import GameObjects.Player.Player;
-import GameObjects.Player.PlayerManager;
-import GameObjects.Room.RoomManager;
+import GameObjects.ObjectManager;
+import GameObjects.Player;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ObjectArrayMessage;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -26,8 +26,7 @@ public class SSLServer implements Server {
     private SSLServerSocket server = null;
     private Config config = null;
     private ExecutorService socketExecutor = null;
-    private PlayerManager playerManager = null;
-    private RoomManager roomManager = null;
+    private ObjectManager objectManager = null;
 
 
     public SSLServer(Config config){
@@ -35,8 +34,7 @@ public class SSLServer implements Server {
         Database.initialize(config);
         this.config = config;
         this.socketExecutor = Executors.newCachedThreadPool();
-        this.roomManager = new RoomManager();
-        this.playerManager = new PlayerManager();
+        this.objectManager = new ObjectManager();
     }
 
     public void start() {
@@ -49,7 +47,7 @@ public class SSLServer implements Server {
             while(true){
                 Socket sock = server.accept();
                 logger.info("Accepted new socket " + sock.getRemoteSocketAddress().toString());
-                Runnable socketRunnable = new DataPackSocketRunnable(playerManager, roomManager, sock);
+                Runnable socketRunnable = new DataPackSocketRunnable(objectManager, sock);
                 this.socketExecutor.submit(socketRunnable);
             }
 
@@ -98,7 +96,7 @@ public class SSLServer implements Server {
         try{
             // send shutdown datapack to ever online users
             // and close the socket.
-            for(Player player : playerManager.getAllPlayers()){
+            for(Player player : objectManager.getAllPlayers()){
                 player.getSocket().send(new DataPack(DataPack.TERMINATE));
                 player.getSocket().close();
             }
