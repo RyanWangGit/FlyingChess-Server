@@ -1,6 +1,5 @@
 package GameObjects.Player;
 
-import GameObjects.User;
 import Server.DataPackSocket;
 
 /**

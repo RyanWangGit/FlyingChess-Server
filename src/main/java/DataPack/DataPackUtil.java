@@ -1,8 +1,8 @@
 package DataPack;
 
 import GameObjects.Player.Player;
-import GameObjects.Room;
-import Managers.ObjectManager;
+import GameObjects.Room.Room;
+import GameObjects.ObjectManager;
 
 import java.util.LinkedList;
 import java.util.List;
