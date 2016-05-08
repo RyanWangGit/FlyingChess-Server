@@ -89,30 +89,26 @@ public class Database {
      * Add the user's info into database, returns the index of the user.
      * @param username The username.
      * @param passwordMD5 The MD5 string of the password.
-     * @return The index of the user.
+     * @return whether the operation is successful or not.
      */
-    public static Integer addUser(String username, String passwordMD5){
+    public static boolean addUser(String username, String passwordMD5){
         String insertSql = "INSERT INTO Users(Name,PasswordMD5) VALUES('" + username + "','" + passwordMD5 + "')";
-        String querySql = "SELECT ID FROM Users WHERE Name='" + username + "'";
         try{
             // reconnect if connection is closed.
             if(conn.isClosed())
                 Database.initialize();
             
             stmt.executeUpdate(insertSql);
-            ResultSet result = stmt.executeQuery(querySql);
-            if(!result.next())
-                return -1;
-            else
-                return result.getInt("ID");
+
+            return true;
         } catch(SQLException e){
             logger.catching(e);
+            return false;
         }
-        return -1;
     }
 
     public static void updateUser(User user){
-        String sql = "UPDATE Users SET PasswordMD5 = '" + user.getPasswordMD5() + "',Points = '" + user.getPoints()
+        String sql = "UPDATE Users SET PasswordMD5 = '" + user.getPassword() + "',Points = '" + user.getPoints()
                 + "' WHERE ID = '" + user.getId() + "'";
         try{
             if(conn.isClosed())
