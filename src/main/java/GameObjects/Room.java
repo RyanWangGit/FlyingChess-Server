@@ -1,40 +1,25 @@
 package GameObjects;
 
-import GameObjects.Player.Player;
-
 import java.util.*;
 
 /**
  * Created by Ryan on 16/4/21.
  */
 public class Room {
+    private RoomManager parent = null;
     private int id = -1;
     private String name = null;
     private Player[] readyPlayers = null;
     private boolean isPlaying = false;
     private Map<Integer, Player>  players = null;
 
-    public Room(int id, String name, Player host){
+    Room(int id, String name, RoomManager parent){
         this.id = id;
         this.name = name;
         this.readyPlayers = new Player[4];
         this.isPlaying = false;
         this.players = new HashMap<>();
-        this.players.put(host.getId(), host);
-    }
-
-    public void setPlaying(boolean isPlaying) {
-        this.isPlaying = isPlaying;
-        if(isPlaying){
-            for(Player player : players.values()){
-                player.setStatus(Player.PLAYING);
-            }
-        }
-        else{
-            for(Player player : players.values()){
-                player.setStatus(Player.ROOM_WAITING);
-            }
-        }
+        this.parent = parent;
     }
 
     public boolean isPlaying() { return this.isPlaying; }
@@ -58,15 +43,17 @@ public class Room {
         this.players.put(player.getId(), player);
     }
 
-    public void removePlayer(Player player){
-        // remove the player from ready players' array.
+    public void setHost(Player host){
+        if(this.players.containsValue(host))
+            host.setHost(true);
+    }
+
+    public int getPlayerPosition(Player player){
         for(int i = 0;i < 4;i ++){
-            Player readyPlayer = readyPlayers[i];
-            if(player.equals(readyPlayer))
-                readyPlayers[i] = null;
+            if(player.equals(readyPlayers[i]))
+                return i;
         }
-        player.setStatus(Player.ROOM_SELECTING);
-        this.players.remove(player.getId());
+        return -1;
     }
 
     public boolean playerSelectPosition(Player player, int position){
@@ -78,8 +65,10 @@ public class Room {
             Player readyPlayer = readyPlayers[i];
             if(player.equals(readyPlayer)){
                 readyPlayers[i] = null;
-                if(player.isRobot())
+                if(player.isRobot()){
                     players.remove(player.getId());
+                    parent.roomListChanged(this);
+                }
                 break;
             }
         }
@@ -90,17 +79,36 @@ public class Room {
                 return false;
 
             readyPlayers[position] = player;
-            if(player.isRobot())
+            if(player.isRobot()){
                 players.put(player.getId(), player);
+                parent.roomListChanged(this);
+            }
         }
         return true;
     }
 
-    public int getPlayerPosition(Player player){
+    public void removePlayer(Player player){
+        // remove the player from ready players' array.
         for(int i = 0;i < 4;i ++){
-            if(player.equals(readyPlayers[i]))
-                return i;
+            Player readyPlayer = readyPlayers[i];
+            if(player.equals(readyPlayer))
+                readyPlayers[i] = null;
         }
-        return -1;
+        player.setStatus(Player.ROOM_SELECTING);
+        this.players.remove(player.getId());
+    }
+
+    public void startGame() {
+        this.isPlaying = true;
+        for(Player player : players.values()){
+            player.setStatus(Player.PLAYING);
+        }
+    }
+
+    public void finishGame(){
+        this.isPlaying = false;
+        for(Player player : players.values()){
+            player.setStatus(Player.ROOM_WAITING);
+        }
     }
 }

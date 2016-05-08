@@ -1,21 +1,21 @@
 package Server;
 
 import DataPack.DataPack;
-import GameObjects.Player.Player;
-import GameObjects.Player.PlayerFilter;
+import GameObjects.Player;
+import PlayerFilter.PlayerFilter;
 
 import java.util.Collection;
 
 /**
  * Created by Ryan on 16/5/2.
  */
-public class BroadcastThread extends Thread {
+public class BroadcastRunnable implements Runnable {
     private Collection<Player> allPlayers = null;
     private PlayerFilter filter = null;
     private DataPack dataPack = null;
     private boolean isRunning = true;
 
-    public BroadcastThread(Collection<Player> allPlayers, PlayerFilter filter, DataPack dataPack){
+    public BroadcastRunnable(Collection<Player> allPlayers, PlayerFilter filter, DataPack dataPack){
         this.allPlayers = allPlayers;
         this.dataPack = dataPack;
         this.filter = filter;
