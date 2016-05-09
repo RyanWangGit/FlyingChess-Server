@@ -1,7 +1,6 @@
-# FlyingChess - Server
+# FlyingChess - Server [![Build Status](https://travis-ci.org/RyanWangGit/FlyingChess-Server.svg?branch=master)](https://travis-ci.org/RyanWangGit/FlyingChess-Server)
 ###### By : Ryan Wang @ HUST
 ###### Email : wangyuxin@hust.edu.cn
-[![Build Status](https://travis-ci.org/RyanWangGit/FlyingChess-Server.svg?branch=master)](https://travis-ci.org/RyanWangGit/FlyingChess-Server)
 
 A Famous Board Game ([wiki](https://en.wikipedia.org/wiki/Flying_chess)). 
 
