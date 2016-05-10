@@ -52,12 +52,20 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
             if(selfPlayer != null){
                 Room playerRoom = selfPlayer.getRoom();
                 if(playerRoom != null){
-                    for(Player roomPlayer : playerRoom.getPlayers()){
-                        if(!roomPlayer.equals(selfPlayer)){
-                            List<String> msgList = new ArrayList<>();
-                            msgList.add(String.valueOf(selfPlayer.getId()));
-                            roomPlayer.getSocket().send(new DataPack(DataPack.E_GAME_PLAYER_DISCONNECTED, msgList));
+                    logger.debug("Player " + selfPlayer.getName() + " got disconnetd in room " + playerRoom.getName() + ".");
+                    if(selfPlayer.isHost()){
+                        logger.debug(selfPlayer.getName() + " is host, prepare to remove the room.");
+                        objectManager.removeRoom(playerRoom);
+                    }
+                    else{
+                        for(Player roomPlayer : playerRoom.getPlayers()){
+                            if(!roomPlayer.equals(selfPlayer)){
+                                List<String> msgList = new ArrayList<>();
+                                msgList.add(String.valueOf(selfPlayer.getId()));
+                                roomPlayer.getSocket().send(new DataPack(DataPack.E_GAME_PLAYER_DISCONNECTED, msgList));
+                            }
                         }
+                        logger.debug("Player " + selfPlayer.getName() + " got disconnetd.");
                     }
                 }
                 objectManager.removePlayer(selfPlayer);
@@ -123,8 +131,6 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(room.getId()));
                     send(new DataPack(DataPack.A_ROOM_CREATE, true, msgList));
-
-                    logger.info("Room created: " + room.getId() + " " + room.getName());
                     return;
                 }
                 case DataPack.R_ROOM_LOOKUP:{
