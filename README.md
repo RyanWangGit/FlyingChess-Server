@@ -13,5 +13,3 @@ A Famous Board Game ([wiki](https://en.wikipedia.org/wiki/Flying_chess)).
 it a universal ssl server model.
 
 * There could be clients in all different forms because the server basically provides standalized `Json` strings for communications.
-
-* For build & deploy, check [Build and Deploy](https://github.com/RyanWangGit/FlyingChess-Server/wiki/Build-and-Deploy). 
