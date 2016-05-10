@@ -10,6 +10,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.Charset;
 
 /**
@@ -75,6 +76,8 @@ public class DataPackSocket {
             this.os.flush();
             logger.debug(new String(sendBytes));
 
+        } catch(SocketException e){
+            logger.warn("Socket has been shutdown.");
         } catch(IOException e){
             logger.catching(e);
         }

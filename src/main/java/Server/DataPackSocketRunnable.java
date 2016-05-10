@@ -24,10 +24,12 @@ import java.util.List;
 class DataPackSocketRunnable extends DataPackSocket implements Runnable {
     private static Logger logger = LogManager.getLogger(DataPackSocketRunnable.class.getName());
     private ObjectManager objectManager = null;
+    private Player selfPlayer = null;
 
     public DataPackSocketRunnable(ObjectManager objectManager, Socket socket) throws IOException{
         super(socket);
         this.objectManager = objectManager;
+        this.selfPlayer = null;
     }
 
     public void run(){
@@ -47,7 +49,27 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
             logger.catching(e);
         }
         finally {
-            objectManager.removePlayer(objectManager.getPlayer(this));
+            if(selfPlayer != null){
+                Room playerRoom = selfPlayer.getRoom();
+                if(playerRoom != null){
+                    logger.debug("Player " + selfPlayer.getName() + " got disconnetd in room " + playerRoom.getName() + ".");
+                    if(selfPlayer.isHost()){
+                        logger.debug(selfPlayer.getName() + " is host, prepare to remove the room.");
+                        objectManager.removeRoom(playerRoom);
+                    }
+                    else{
+                        for(Player roomPlayer : playerRoom.getPlayers()){
+                            if(!roomPlayer.equals(selfPlayer)){
+                                List<String> msgList = new ArrayList<>();
+                                msgList.add(String.valueOf(selfPlayer.getId()));
+                                roomPlayer.getSocket().send(new DataPack(DataPack.E_GAME_PLAYER_DISCONNECTED, msgList));
+                            }
+                        }
+                        logger.debug("Player " + selfPlayer.getName() + " got disconnetd.");
+                    }
+                }
+                objectManager.removePlayer(selfPlayer);
+            }
         }
     }
 
@@ -73,6 +95,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     // login successful
                     if(player != null){
                         player.setSocket(this);
+                        this.selfPlayer = player;
                         List<String> msgList = new ArrayList<>();
                         msgList.add(String.valueOf(player.getId()));
                         msgList.add(String.valueOf(player.getPoints()));
@@ -108,8 +131,6 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(room.getId()));
                     send(new DataPack(DataPack.A_ROOM_CREATE, true, msgList));
-
-                    logger.info("Room created: " + room.getId() + " " + room.getName());
                     return;
                 }
                 case DataPack.R_ROOM_LOOKUP:{
