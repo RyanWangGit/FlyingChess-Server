@@ -5,7 +5,6 @@ import DataPack.DataPackUtil;
 import Database.Database;
 import PlayerFilter.RoomSelectingFilter;
 import Server.BroadcastRunnable;
-import Server.DataPackSocket;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -165,6 +164,7 @@ class PlayerManager {
 
 
 class RoomManager {
+    private Logger logger = LogManager.getLogger(RoomManager.class.getName());
     private ObjectManager parent = null;
     private Map<Integer, Room> rooms = null;
     private int nextId = 0;
@@ -182,14 +182,19 @@ class RoomManager {
         Room room = new Room(nextId, roomName, this);
         this.rooms.put(nextId, room);
         nextId++;
+        parent.roomListChanged(room);
+        logger.info("Room created: " + room.getId() + " " + room.getName());
         return room;
     }
 
     public void removeRoom(Room room) {
         for(Player roomPlayer : room.getPlayers()){
-            roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_EXIT));
+            if(!roomPlayer.isRobot())
+                roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_EXIT));
         }
         this.rooms.remove(room.getId());
+        parent.roomListChanged(room);
+        logger.info("Room removed: " + room.getId() + " " + room.getName());
     }
 
     protected void roomListChanged(Room changedRoom){
