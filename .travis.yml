@@ -1,6 +1,12 @@
 language: java
 jdk:
   - oraclejdk8
+sudo: 
+  - required
+before_install:
+  - sudo apt-get update
+install:
+  - sudo apt-get install tcl tk expect ssh
 script:
   - mvn assembly:assembly
 after_success:
