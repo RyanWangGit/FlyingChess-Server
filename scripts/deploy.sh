@@ -1,6 +1,6 @@
 #!/usr/bin/expect -f
 set timeout -1
-spawn scp ${JAR_WITH_DEPENDENCIES ${USERNAME}@${SERVERIP}:${PATH}
+spawn scp ${JAR_WITH_DEPENDENCIES} ${USERNAME}@${SERVERIP}:${PATH}
 expect {
     "(yes/no)?" {send "yes\n"; exp_continue}
     "*assword:" {send "${PASSWORD}\n";} 
