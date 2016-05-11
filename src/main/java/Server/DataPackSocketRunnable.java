@@ -310,6 +310,31 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     }
                     return;
                 }
+                case DataPack.R_GAME_EXIT:{
+                    Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
+                    Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+                    List<String> msgList = new ArrayList<>();
+                    msgList.add(String.valueOf(player.getId()));
+                    if(player.isHost()){
+                        msgList.add("1");
+                        objectManager.removeRoom(room);
+                    }
+                    else{
+                        msgList.add("0");
+                    }
+
+                    // reset datapack
+                    dataPack.setCommand(DataPack.E_GAME_PLAYER_DISCONNECTED);
+                    dataPack.setDate(new Date());
+                    dataPack.setMessageList(msgList);
+
+                    for(Player roomPlayer : room.getPlayers()){
+                        if(!roomPlayer.isRobot() && !roomPlayer.equals(player))
+                            roomPlayer.getSocket().send(dataPack);
+                    }
+                    send(new DataPack(DataPack.A_GAME_EXIT, true));
+                    return;
+                }
                 default:
                     return;
             }

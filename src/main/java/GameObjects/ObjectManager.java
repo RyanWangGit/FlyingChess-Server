@@ -189,8 +189,10 @@ class RoomManager {
 
     public void removeRoom(Room room) {
         for(Player roomPlayer : room.getPlayers()){
-            if(!roomPlayer.isRobot())
+            if(!roomPlayer.isRobot()){
                 roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_EXIT));
+                roomPlayer.setStatus(Player.ROOM_SELECTING);
+            }
         }
         this.rooms.remove(room.getId());
         parent.roomListChanged(room);
