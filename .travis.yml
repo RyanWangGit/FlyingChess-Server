@@ -6,9 +6,9 @@ sudo:
 before_install:
   - sudo apt-get update
 install:
-  - sudo apt-get install python-pip python-dev build-essential 
-  - sudo pip install pexpect
+  - sudo apt-get install expect
 script:
   - mvn assembly:assembly
 after_success:
-  - python ./scripts/deploy.py
+  - chmod +x ./scripts/deploy.sh
+  - ./scripts/deploy.sh
