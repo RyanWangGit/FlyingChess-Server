@@ -6,8 +6,9 @@ sudo:
 before_install:
   - sudo apt-get update
 install:
-  - sudo apt-get install tcl tk expect ssh
+  - sudo apt-get install python pip
+  - pip install pexpect
 script:
   - mvn assembly:assembly
 after_success:
-  - ./scripts/deploy.sh
+  - python ./scripts/deploy.py
