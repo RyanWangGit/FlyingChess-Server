@@ -1,4 +1,4 @@
-
+#!usr/bin/python
 import pexpect
 import sys
 import os
@@ -17,23 +17,24 @@ jar_path = os.getenv("JARPATH")
 password = os.getenv("PASSWORD")
 
 try:
-    expect_object = pexpect.spawn("scp "
-                                  + jar_with_dependencies
-                                  + " " + user_name + "@" + server_ip
-                                  +":" + jar_path)
+    print('Starting transmitting file to server.')
+    scp = 'scp %s %s@%s:%s' % (jar_with_dependencies, user_name, server_ip, jar_path)
+    expect_object = pexpect.spawn(scp, logfile=sys.stdout)
     send_password(expect_object)
-
-    # login
+    
     expect_object.expect("100%")
-    expect_object.sendline("ssh " + user_name + "@" + server_ip)
+    print('')
+    ssh = 'ssh %s@%s'%(user_name, server_ip)
+    expect_object.sendline(ssh)
     send_password(expect_object)
 
     expect_object.expect("#")
     expect_object.sendline("kill `jps \| grep \"flyingchess\" \| cut -d \" \" -f 1`")
     expect_object.expect("#")
-    expect_object.sendline("nohup java -jar $env(JARPATH) &\n")
+    expect_object.sendline('nohup java -jar %s &\n' % jar_path)
     expect_object.sendline("exit")
-except:
+except Exception, e:
+    print(e)
     sys.exit(1)
 
 sys.exit(0)
