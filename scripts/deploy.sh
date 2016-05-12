@@ -1,4 +1,5 @@
 #!/usr/bin/expect -f
+set -o errexit
 set timeout -1
 spawn scp $env(JAR_WITH_DEPENDENCIES) $env(USERNAME)@$env(SERVERIP):$env(JARPATH)
 expect {
