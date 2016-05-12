@@ -57,4 +57,9 @@ public class Player extends User {
     public Room getRoom(){ return room; }
 
     protected void setRoom(Room room) { this.room = room; }
+
+    @Override
+    public String toString(){
+        return userName + '(' + String.valueOf(id) + ')';
+    }
 }
