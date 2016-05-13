@@ -18,7 +18,6 @@ public class DataPack {
     public final static int R_LOGIN = 1000;
     public final static int A_LOGIN = 1010;
     public final static int R_LOGOUT = 1002;
-    public final static int A_LOGOUT = 1012;
     public final static int R_REGISTER = 1003;
     public final static int A_REGISTER = 1013;
 
@@ -37,9 +36,9 @@ public class DataPack {
      * Commands in room process.
      */
     public final static int R_ROOM_EXIT = 3000;
-    public final static int A_ROOM_EXIT = 3010;
     public final static int E_ROOM_EXIT = 3100;
     public final static int R_ROOM_POSITION_SELECT = 3001;
+    public final static int A_ROOM_POSITION_SELECT = 3101;
     public final static int E_ROOM_POSITION_SELECT = 3101;
     public final static int R_GAME_START = 3002;
     public final static int E_GAME_START = 3102;
@@ -53,6 +52,8 @@ public class DataPack {
     public final static int E_GAME_PROCEED_PLANE = 4101;
     public final static int E_GAME_PLAYER_DISCONNECTED = 4102;
     public final static int E_GAME_PLAYER_CONNECTED = 4103;
+    public final static int R_GAME_EXIT = 4008;
+    public final static int A_GAME_EXIT = 4018;
     public final static int R_GAME_FINISHED = 4009;
     public final static int E_GAME_FINISHED = 4109;
 
