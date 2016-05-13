@@ -25,20 +25,20 @@ public class DataPackUtil {
         for(Player player : room.getPlayers()){
             // put the host player in the front
             if(player.isHost())
-                msgList.addAll(getPlayerInfoMessage(player, room));
+                msgList.addAll(getPlayerInfoMessage(player));
             else
-                otherPlayerMsgList.addAll(getPlayerInfoMessage(player, room));
+                otherPlayerMsgList.addAll(getPlayerInfoMessage(player));
         }
         msgList.addAll(otherPlayerMsgList);
         return msgList;
     }
 
-    public static List<String> getPlayerInfoMessage(Player player, Room room){
+    public static List<String> getPlayerInfoMessage(Player player){
         List<String> msgList = new LinkedList<>();
         msgList.add(String.valueOf(player.getId()));
         msgList.add(player.getName());
         msgList.add(String.valueOf(player.getPoints()));
-        msgList.add(String.valueOf(room.getPlayerPosition(player)));
+        msgList.add(String.valueOf(player.getRoom().getPlayerPosition(player)));
         return msgList;
     }
 

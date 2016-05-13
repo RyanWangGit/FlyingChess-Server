@@ -1,6 +1,11 @@
 package GameObjects;
 
-import java.util.*;
+import DataPack.DataPack;
+import DataPack.DataPackUtil;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by Ryan on 16/4/21.
@@ -42,12 +47,23 @@ public class Room {
         player.setStatus(Player.ROOM_WAITING);
         player.setRoom(this);
         this.players.put(player.getId(), player);
+
+        // notify other players
+        broadcastToOthers(player, new DataPack(DataPack.E_ROOM_ENTER, DataPackUtil.getPlayerInfoMessage(player)));
         parent.roomListChanged(this);
     }
 
     public void setHost(Player host){
         if(this.players.containsValue(host))
             host.setHost(true);
+    }
+
+    public Player getHost(){
+        for(Player player : players.values()){
+            if(player.isHost())
+                return player;
+        }
+        return null;
     }
 
     public int getPlayerPosition(Player player){
@@ -86,8 +102,38 @@ public class Room {
                 parent.roomListChanged(this);
             }
         }
+        // notify other players
+        broadcastToOthers(player, new DataPack(DataPack.E_ROOM_POSITION_SELECT, true, DataPackUtil.getPlayerInfoMessage(player)));
         return true;
     }
+
+    public void broadcastToAll(DataPack dataPack){
+       for(Player roomPlayer : players.values()){
+           if(!roomPlayer.isRobot()){
+               try{
+                   roomPlayer.getSocket().send(dataPack);
+               } catch(Exception e){
+
+               }
+           }
+       }
+    }
+
+    public void broadcastToOthers(Player broadcaster, DataPack dataPack){
+        if(players.containsValue(broadcaster)){
+            for(Player roomPlayer : players.values()){
+                if(!roomPlayer.equals(broadcaster) &&!roomPlayer.isRobot()){
+                    try{
+                        roomPlayer.getSocket().send(dataPack);
+                    } catch(Exception e){
+
+                    }
+                }
+            }
+        }
+    }
+
+    public boolean containsPlayer(Player player){ return players.containsValue(player); }
 
     public void removePlayer(Player player){
         // remove the player from ready players' array.
@@ -99,14 +145,20 @@ public class Room {
         player.setStatus(Player.ROOM_SELECTING);
         player.setRoom(null);
         this.players.remove(player.getId());
+        // notify other players
+        broadcastToOthers(player, new DataPack(DataPack.E_ROOM_EXIT, DataPackUtil.getPlayerInfoMessage(player)));
+
         parent.roomListChanged(this);
     }
 
     public void startGame() {
         this.isPlaying = true;
-        for(Player player : players.values()){
+        for(Player player : players.values())
             player.setStatus(Player.PLAYING);
-        }
+
+        // send out game start signal to the players
+        broadcastToAll(new DataPack(DataPack.E_GAME_START, true));
+
         parent.roomListChanged(this);
     }
 
@@ -116,5 +168,10 @@ public class Room {
             player.setStatus(Player.ROOM_WAITING);
         }
         parent.roomListChanged(this);
+    }
+
+    @Override
+    public String toString(){
+        return name + '(' + String.valueOf(id) + ')';
     }
 }

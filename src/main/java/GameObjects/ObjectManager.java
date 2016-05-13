@@ -34,7 +34,7 @@ public class ObjectManager {
 
     /**
      * Invoked when the list of the rooms have changed,
-     * this method creates a new thread to broadcast the new rooms
+     * this method creates a new thread to broadcastToAll the new rooms
      * info to all players.
      */
     protected void roomListChanged(Room changedRoom){
@@ -72,6 +72,30 @@ public class ObjectManager {
     }
 
     public void removePlayer(Player player){
+        if(player == null)
+            return;
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("Player " + player.toString() + " got disconnetd");
+
+        Room playerRoom = player.getRoom();
+
+        if(playerRoom != null){
+            // send disconnected datapack
+            DataPack dataPack = new DataPack(DataPack.E_GAME_PLAYER_DISCONNECTED, DataPackUtil.getPlayerInfoMessage(player));
+            if(player.getStatus() != Player.PLAYING)
+                dataPack.setCommand(DataPack.E_ROOM_EXIT);
+            playerRoom.broadcastToOthers(player, dataPack);
+
+            builder.append(" in room " + playerRoom.toString() + ". ");
+            if(player.isHost()){
+                builder.append(player.toString() + " is host, prepare to remove the room.");
+
+                removeRoom(playerRoom);
+            }
+        }
+        logger.info(builder.toString());
+
         playerManager.removePlayer(player);
     }
 
@@ -87,7 +111,17 @@ public class ObjectManager {
     }
 
     public void removeRoom(Room room){
+        for(Player roomPlayer : room.getPlayers())
+            roomPlayer.setStatus(Player.ROOM_SELECTING);
+
+        // notify other players that host has exited
+        Player host = room.getHost();
+        if(host != null)
+            room.broadcastToOthers(host, new DataPack(DataPack.E_ROOM_EXIT, DataPackUtil.getPlayerInfoMessage(host)));
+
         roomManager.removeRoom(room);
+        logger.info("Room removed: " + room.getId() + " " + room.getName());
+        roomListChanged(room);
     }
 
     public Collection<Room> getAllRooms(){
@@ -148,12 +182,10 @@ class PlayerManager {
 
     public void removePlayer(Player player){
         try{
-            if(player == null)
-                return;
             this.playerMap.remove(player.getId());
             player.getSocket().close();
         } catch(IOException e){
-            logger.catching(e);
+
         }
     }
 
@@ -187,15 +219,7 @@ class RoomManager {
         return room;
     }
 
-    public void removeRoom(Room room) {
-        for(Player roomPlayer : room.getPlayers()){
-            if(!roomPlayer.isRobot())
-                roomPlayer.getSocket().send(new DataPack(DataPack.E_ROOM_EXIT));
-        }
-        this.rooms.remove(room.getId());
-        parent.roomListChanged(room);
-        logger.info("Room removed: " + room.getId() + " " + room.getName());
-    }
+    public void removeRoom(Room room) { this.rooms.remove(room.getId()); }
 
     protected void roomListChanged(Room changedRoom){
         parent.roomListChanged(changedRoom);

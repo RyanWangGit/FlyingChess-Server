@@ -42,12 +42,9 @@ public class DataPackSocket {
         byte[] bytes = new byte[blockSize];
         this.is.readFully(bytes);
 
-        String json = new String(bytes, "UTF-8");
-
-        logger.debug(json);
 
         // parse the datapack and return
-        return dataPackGson.fromJson(json, DataPack.class);
+        return dataPackGson.fromJson(new String(bytes, "UTF-8"), DataPack.class);
     }
 
     /**
@@ -74,7 +71,6 @@ public class DataPackSocket {
             this.os.writeInt(bytesSize);
             this.os.write(sendBytes);
             this.os.flush();
-            logger.debug(new String(sendBytes));
 
         } catch(SocketException e){
             logger.warn("Socket has been shutdown.");
