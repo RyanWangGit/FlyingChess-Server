@@ -43,7 +43,6 @@ public class DataPackSocket {
         byte[] bytes = new byte[blockSize];
         this.is.readFully(bytes);
 
-
         // parse the datapack and return
         return dataPackGson.fromJson(new String(bytes, "UTF-8"), DataPack.class);
     }
