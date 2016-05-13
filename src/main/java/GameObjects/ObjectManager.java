@@ -111,8 +111,10 @@ public class ObjectManager {
     }
 
     public void removeRoom(Room room){
-        for(Player roomPlayer : room.getPlayers())
+        for(Player roomPlayer : room.getPlayers()){
             roomPlayer.setStatus(Player.ROOM_SELECTING);
+            roomPlayer.setRoom(null);
+        }
 
         // notify other players that host has exited
         Player host = room.getHost();
@@ -120,7 +122,7 @@ public class ObjectManager {
             room.broadcastToOthers(host, new DataPack(DataPack.E_ROOM_EXIT, DataPackUtil.getPlayerInfoMessage(host)));
 
         roomManager.removeRoom(room);
-        logger.info("Room removed: " + room.getId() + " " + room.getName());
+        logger.info("Room removed: " + room.toString());
         roomListChanged(room);
     }
 
@@ -153,6 +155,7 @@ class PlayerManager {
         if(currentPlayer == null){
             Player player = new Player(user, this);
             this.playerMap.put(player.getId(), player);
+            logger.info(player.toString() + " logged in.");
             return player;
         }
         else {
@@ -165,6 +168,7 @@ class PlayerManager {
                     logger.warn("Error occured closing former connection.");
                 }
                 finally {
+                    logger.info(currentPlayer.toString() + " logged in.");
                     return currentPlayer;
                 }
             }
@@ -215,7 +219,7 @@ class RoomManager {
         this.rooms.put(nextId, room);
         nextId++;
         parent.roomListChanged(room);
-        logger.info("Room created: " + room.getId() + " " + room.getName());
+        logger.info("Room created: " + room.toString());
         return room;
     }
 
