@@ -26,6 +26,7 @@ public class DataPackSocket {
     public DataPackSocket(Socket socket) throws IOException{
         this.socket = socket;
         this.socket.setTcpNoDelay(true);
+        this.socket.setKeepAlive(true);
         this.os = new DataOutputStream(socket.getOutputStream());
         this.is = new DataInputStream(socket.getInputStream());
     }
