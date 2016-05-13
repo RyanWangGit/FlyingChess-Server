@@ -2,6 +2,8 @@ package GameObjects;
 
 import DataPack.DataPack;
 import DataPack.DataPackUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -11,6 +13,7 @@ import java.util.Map;
  * Created by Ryan on 16/4/21.
  */
 public class Room {
+    private Logger logger = LogManager.getLogger(Room.class.getName());
     private RoomManager parent = null;
     private int id = -1;
     private String name = null;
@@ -50,6 +53,8 @@ public class Room {
 
         // notify other players
         broadcastToOthers(player, new DataPack(DataPack.E_ROOM_ENTER, DataPackUtil.getPlayerInfoMessage(player)));
+
+        logger.info(player.toString() + " has entered the room " + this.toString());
         parent.roomListChanged(this);
     }
 
@@ -148,6 +153,7 @@ public class Room {
         // notify other players
         broadcastToOthers(player, new DataPack(DataPack.E_ROOM_EXIT, DataPackUtil.getPlayerInfoMessage(player)));
 
+        logger.info(player.toString() + " has left the room " + this.toString());
         parent.roomListChanged(this);
     }
 
@@ -159,6 +165,7 @@ public class Room {
         // send out game start signal to the players
         broadcastToAll(new DataPack(DataPack.E_GAME_START, true));
 
+        logger.info(this.toString() + " has started the game.");
         parent.roomListChanged(this);
     }
 
@@ -167,6 +174,7 @@ public class Room {
         for(Player player : players.values()){
             player.setStatus(Player.ROOM_WAITING);
         }
+        logger.info(this.toString() + " has finished the game.");
         parent.roomListChanged(this);
     }
 

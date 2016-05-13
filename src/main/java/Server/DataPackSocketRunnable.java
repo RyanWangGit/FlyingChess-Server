@@ -208,6 +208,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
                     Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
+                    logger.info(player.toString() + " diced in " + room.toString());
                     // set the command
                     dataPack.setCommand(DataPack.E_GAME_PROCEED_DICE);
                     // update datapack's time
@@ -221,6 +222,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
                     Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
+                    logger.info(player.toString() + " selected plane in " + room.toString());
                     // set the command
                     dataPack.setCommand(DataPack.E_GAME_PROCEED_PLANE);
                     // update datapack's time
