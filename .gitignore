@@ -4,3 +4,5 @@ target/
 .idea/
 logs/
 *.sh
+flyingchess.jks
+config.xml
