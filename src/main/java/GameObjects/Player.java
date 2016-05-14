@@ -14,6 +14,7 @@ public class Player extends User {
     public static final int ROOM_SELECTING = 0;
     public static final int ROOM_WAITING = 1;
     public static final int PLAYING = 2;
+    public static final int DISCONNECTED = 3;
 
     Player(User user, PlayerManager parent){
         super(user);
@@ -50,7 +51,7 @@ public class Player extends User {
         return this.id;
     }
 
-    public int getStatus() { return this.status; }
+    public boolean isInStatus(int status) { return this.status == status; }
 
     public void setStatus(int status) { this.status = status; }
 
