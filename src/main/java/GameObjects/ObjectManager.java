@@ -17,7 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Manages all the online objects including @ref
+ * Manages all the online objects including Player/Room
  */
 public class ObjectManager {
     private static Logger logger = LogManager.getLogger(ObjectManager.class.getName());
@@ -63,38 +63,44 @@ public class ObjectManager {
             return null;
         }
         else{
-           return playerManager.createPlayer(user);
+            // get former connection
+            Player currentPlayer = playerManager.getPlayer(user.getId());
+            if(currentPlayer == null){
+                Player player = playerManager.createPlayer(user);
+                logger.info(player.toString() + " logged in.");
+                return player;
+            }
+            else {
+                // close the former client connection
+                if(!currentPlayer.getSocket().equals(this)){
+                    try{
+                        currentPlayer.getSocket().close();
+                        currentPlayer.setSocket(null);
+                    } catch(IOException | NullPointerException e){
+                        logger.warn("Error occured closing former connection.");
+                    }
+                    finally {
+                        logger.info(currentPlayer.toString() + " logged in.");
+                        return currentPlayer;
+                    }
+                }
+            }
+            return null;
         }
     }
 
     public Player getPlayer(int playerId){
-        return playerManager.getPlayer(playerId);
+        // if it is a robot
+        if(playerId < 0 && playerId >= -4){
+            return new Player(new User(playerId, "Robot", null, 0), null);
+        }
+        else
+            return playerManager.getPlayer(playerId);
     }
 
     public void removePlayer(Player player){
         if(player == null)
             return;
-
-        StringBuilder builder = new StringBuilder();
-        builder.append("Player " + player.toString() + " got disconnetd");
-
-        Room playerRoom = player.getRoom();
-
-        if(playerRoom != null){
-            // send disconnected datapack
-            DataPack dataPack = new DataPack(DataPack.E_GAME_PLAYER_DISCONNECTED, DataPackUtil.getPlayerInfoMessage(player));
-            if(player.getStatus() != Player.PLAYING)
-                dataPack.setCommand(DataPack.E_ROOM_EXIT);
-            playerRoom.broadcastToOthers(player, dataPack);
-
-            builder.append(" in room " + playerRoom.toString() + ". ");
-            if(player.isHost()){
-                builder.append(player.toString() + " is host, prepare to remove the room.");
-
-                removeRoom(playerRoom);
-            }
-        }
-        logger.info(builder.toString());
 
         playerManager.removePlayer(player);
     }
@@ -111,16 +117,15 @@ public class ObjectManager {
     }
 
     public void removeRoom(Room room){
-        for(Player roomPlayer : room.getPlayers()){
-            roomPlayer.setStatus(Player.ROOM_SELECTING);
-            roomPlayer.setRoom(null);
-        }
-
         // notify other players that host has exited
         Player host = room.getHost();
         if(host != null)
             room.broadcastToOthers(host, new DataPack(DataPack.E_ROOM_EXIT, DataPackUtil.getPlayerInfoMessage(host)));
 
+        for(Player roomPlayer : room.getPlayers()){
+            roomPlayer.setStatus(Player.ROOM_SELECTING);
+            roomPlayer.setRoom(null);
+        }
         roomManager.removeRoom(room);
         logger.info("Room removed: " + room.toString());
         roomListChanged(room);
@@ -150,38 +155,13 @@ class PlayerManager {
     }
 
     public Player createPlayer(User user){
-        // get former connection
-        Player currentPlayer = this.playerMap.get(user.getId());
-        if(currentPlayer == null){
-            Player player = new Player(user, this);
-            this.playerMap.put(player.getId(), player);
-            logger.info(player.toString() + " logged in.");
-            return player;
-        }
-        else {
-            // close the former client connection
-            if(!currentPlayer.getSocket().equals(this)){
-                try{
-                    currentPlayer.getSocket().close();
-                    currentPlayer.setSocket(null);
-                } catch(IOException | NullPointerException e){
-                    logger.warn("Error occured closing former connection.");
-                }
-                finally {
-                    logger.info(currentPlayer.toString() + " logged in.");
-                    return currentPlayer;
-                }
-            }
-        }
-        return null;
+        Player player = new Player(user, this);
+        this.playerMap.put(player.getId(), player);
+        return player;
     }
 
     public Player getPlayer(int id) {
-        // if it is a robot
-        if(id < 0 && id >= -4)
-            return new Player(new User(id, "Robot", null, 0), null);
-        else
-            return this.playerMap.get(id);
+        return this.playerMap.get(id);
     }
 
     public void removePlayer(Player player){
