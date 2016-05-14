@@ -85,10 +85,10 @@ public class Room {
 
         // remove the player from the current position
         for(int i = 0;i < 4;i ++){
-            Player readyPlayer = readyPlayers[i];
-            if(player.equals(readyPlayer)){
+            if(player.equals(readyPlayers[i])){
                 readyPlayers[i] = null;
                 if(player.isRobot()){
+                    player.setRoom(this);
                     players.remove(player.getId());
                     parent.roomListChanged(this);
                 }
@@ -102,11 +102,15 @@ public class Room {
                 return false;
 
             readyPlayers[position] = player;
+
+            // robot is first created
             if(player.isRobot()){
+                player.setRoom(this);
                 players.put(player.getId(), player);
                 parent.roomListChanged(this);
             }
         }
+
         // notify other players
         broadcastToOthers(player, new DataPack(DataPack.E_ROOM_POSITION_SELECT, true, DataPackUtil.getPlayerInfoMessage(player)));
         return true;
@@ -127,7 +131,7 @@ public class Room {
     public void broadcastToOthers(Player broadcaster, DataPack dataPack){
         if(players.containsValue(broadcaster)){
             for(Player roomPlayer : players.values()){
-                if(!roomPlayer.equals(broadcaster) &&!roomPlayer.isRobot()){
+                if(!roomPlayer.equals(broadcaster) && !roomPlayer.isRobot()){
                     try{
                         roomPlayer.getSocket().send(dataPack);
                     } catch(Exception e){
@@ -141,19 +145,20 @@ public class Room {
     public boolean containsPlayer(Player player){ return players.containsValue(player); }
 
     public void removePlayer(Player player){
-        // remove the player from ready players' array.
-        for(int i = 0;i < 4;i ++){
-            Player readyPlayer = readyPlayers[i];
-            if(player.equals(readyPlayer))
-                readyPlayers[i] = null;
-        }
-        player.setStatus(Player.ROOM_SELECTING);
-        player.setRoom(null);
-        this.players.remove(player.getId());
         // notify other players
         broadcastToOthers(player, new DataPack(DataPack.E_ROOM_EXIT, DataPackUtil.getPlayerInfoMessage(player)));
 
+        // remove the player from ready players' array.
+        for(int i = 0;i < 4;i ++){
+            if(player.equals(readyPlayers[i]))
+                readyPlayers[i] = null;
+        }
+
         logger.info(player.toString() + " has left the room " + this.toString());
+
+        player.setStatus(Player.ROOM_SELECTING);
+        player.setRoom(null);
+        this.players.remove(player.getId());
         parent.roomListChanged(this);
     }
 
