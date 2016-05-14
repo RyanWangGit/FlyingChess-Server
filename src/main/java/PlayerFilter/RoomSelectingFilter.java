@@ -8,6 +8,6 @@ import GameObjects.Player;
 public class RoomSelectingFilter implements PlayerFilter{
 
     public boolean isBlocked(Player player){
-        return !(player.getStatus() == Player.ROOM_SELECTING);
+        return !player.isInStatus(Player.ROOM_SELECTING);
     }
 }
