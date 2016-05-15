@@ -1,13 +1,13 @@
 package GameObjects;
 
-import Server.DataPackSocket;
+import DataPack.DataPackTcpSocket;
 
 /**
  * Created by Ryan on 16/4/27.
  */
 public class Player extends User {
     private boolean isHost = false;
-    private DataPackSocket socket = null;
+    private DataPackTcpSocket socket = null;
     private int status = 0;
     private PlayerManager parent = null;
     private Room room = null;
@@ -29,9 +29,9 @@ public class Player extends User {
 
     public void setHost(boolean isHost) { this.isHost = isHost; }
 
-    public void setSocket(DataPackSocket socket) { this.socket = socket; }
+    public void setSocket(DataPackTcpSocket socket) { this.socket = socket; }
 
-    public DataPackSocket getSocket() { return this.socket; }
+    public DataPackTcpSocket getSocket() { return this.socket; }
 
     @Override
     public boolean equals(Object obj){

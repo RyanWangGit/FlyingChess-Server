@@ -1,6 +1,5 @@
-package Server;
+package DataPack;
 
-import DataPack.DataPack;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.logging.log4j.LogManager;
@@ -9,21 +8,20 @@ import org.apache.logging.log4j.Logger;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketException;
+import java.net.*;
 import java.nio.charset.Charset;
 
 /**
  * Created by Ryan on 16/4/26.
  */
-public class DataPackSocket {
-    private static Logger logger = LogManager.getLogger(DataPackSocket.class.getName());
+public class DataPackTcpSocket {
+    private static Logger logger = LogManager.getLogger(DataPackTcpSocket.class.getName());
     protected Socket socket = null;
     protected DataInputStream is = null;
     protected DataOutputStream os = null;
     protected Gson dataPackGson = new GsonBuilder().setDateFormat("yyyy-MM-dd hh:mm:ss").create();
 
-    public DataPackSocket(Socket socket) throws IOException{
+    public DataPackTcpSocket(Socket socket) throws IOException{
         this.socket = socket;
         this.socket.setTcpNoDelay(true);
         this.socket.setKeepAlive(true);
@@ -37,7 +35,7 @@ public class DataPackSocket {
      *
      * @return The data pack read.
      */
-    protected DataPack receive() throws IOException{
+    public DataPack receive() throws IOException{
         int blockSize = this.is.readInt();
 
         byte[] bytes = new byte[blockSize];
@@ -63,7 +61,7 @@ public class DataPackSocket {
      *
      * @param dataPack The datapack to be sent.
      */
-    public synchronized void send(DataPack dataPack) {
+    public synchronized void send(DataPack dataPack) throws IOException {
         try{
             byte[] sendBytes = dataPackGson.toJson(dataPack, DataPack.class).getBytes(Charset.forName("UTF-8"));
             int bytesSize = sendBytes.length;
@@ -72,10 +70,12 @@ public class DataPackSocket {
             this.os.write(sendBytes);
             this.os.flush();
 
-        } catch(SocketException e){
+        } catch(SocketException e) {
             logger.warn("Socket has been shutdown.");
-        } catch(IOException e){
-            logger.catching(e);
         }
+    }
+
+    public InetSocketAddress getInetSocketAddress(){
+        return new InetSocketAddress(socket.getInetAddress(), socket.getPort());
     }
 }
