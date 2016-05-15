@@ -24,11 +24,15 @@ public class BroadcastRunnable implements Runnable {
     @Override
     public void run(){
         for(Player player : allPlayers){
-            if(!filter.isBlocked(player)){
-                if(isRunning)
-                    player.getSocket().send(dataPack);
-                else
-                    return;
+            try{
+                if(!filter.isBlocked(player)){
+                    if(isRunning)
+                        player.getSocket().send(dataPack);
+                    else
+                        return;
+                }
+            } catch(Exception e){
+
             }
         }
     }
