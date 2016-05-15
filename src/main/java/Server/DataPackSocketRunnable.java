@@ -2,6 +2,7 @@ package Server;
 
 import DataPack.DataPack;
 import DataPack.DataPackUtil;
+import DataPack.DataPackTcpSocket;
 import Database.Database;
 import GameObjects.ObjectManager;
 import GameObjects.Player;
@@ -11,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -20,28 +20,30 @@ import java.util.List;
 /**
  * Created by Ryan on 16/4/12.
  */
-class DataPackSocketRunnable extends DataPackSocket implements Runnable {
+class DataPackSocketRunnable implements Runnable {
     private static Logger logger = LogManager.getLogger(DataPackSocketRunnable.class.getName());
     private ObjectManager objectManager = null;
     private Player selfPlayer = null;
+    private DataPackTcpSocket socket = null;
 
-    public DataPackSocketRunnable(ObjectManager objectManager, Socket socket) throws IOException{
-        super(socket);
+    public DataPackSocketRunnable(ObjectManager objectManager, DataPackTcpSocket socket) throws IOException{
         this.objectManager = objectManager;
         this.selfPlayer = null;
+        this.socket = socket;
     }
 
     public void run(){
         try{
-            logger.info("Connection established with " + socket.getInetAddress().toString());
+
+            logger.info("Connection established with " + socket.getInetSocketAddress().toString());
 
             // enter process loop
             while(true){
-                processDataPack(receive());
+                processDataPack(socket.receive());
             }
 
         } catch(EOFException e){
-            logger.warn("Found EOF when reading from " + socket.getInetAddress().toString() + ".Drop the connection.");
+            logger.warn("Found EOF when reading from " + socket.getInetSocketAddress().toString() + ".Drop the connection.");
         } catch(SocketException e){
             logger.info("Socket shutdown due to external request.");
         } catch (Exception e){
@@ -102,16 +104,16 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
 
                     // login successful
                     if(player != null){
-                        player.setSocket(this);
+                        player.setSocket(socket);
                         this.selfPlayer = player;
                         List<String> msgList = new ArrayList<>();
                         msgList.add(String.valueOf(player.getId()));
                         msgList.add(String.valueOf(player.getPoints()));
-                        send(new DataPack(DataPack.A_LOGIN, true, msgList));
+                        socket.send(new DataPack(DataPack.A_LOGIN, true, msgList));
                     }
                     // login failed
                     else{
-                        send(new DataPack(DataPack.A_LOGIN, false));
+                        socket.send(new DataPack(DataPack.A_LOGIN, false));
                     }
                     return;
                 }
@@ -119,7 +121,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     String userName = dataPack.getMessage(0);
                     String password = dataPack.getMessage(1).toUpperCase();
                     boolean isSuccessful = objectManager.registerUser(userName, password);
-                    send(new DataPack(DataPack.A_REGISTER, isSuccessful));
+                    socket.send(new DataPack(DataPack.A_REGISTER, isSuccessful));
                     if(isSuccessful)
                         logger.info("New user registered : " + userName);
                     return;
@@ -135,7 +137,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     String roomName = dataPack.getMessage(1);
 
                     if(player.getRoom() != null){
-                        send(new DataPack(DataPack.A_ROOM_CREATE, false));
+                        socket.send(new DataPack(DataPack.A_ROOM_CREATE, false));
                         return;
                     }
 
@@ -143,7 +145,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
 
                     List<String> msgList = new ArrayList<>();
                     msgList.add(String.valueOf(room.getId()));
-                    send(new DataPack(DataPack.A_ROOM_CREATE, true, msgList));
+                    socket.send(new DataPack(DataPack.A_ROOM_CREATE, true, msgList));
                     return;
                 }
                 case DataPack.R_ROOM_LOOKUP:{
@@ -151,25 +153,25 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     dataPack.setCommand(DataPack.A_ROOM_LOOKUP);
                     dataPack.setSuccessful(true);
                     dataPack.setMessageList(msgList);
-                    send(dataPack);
+                    socket.send(dataPack);
                     return;
                 }
                 case DataPack.R_ROOM_ENTER:{
                     Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
                     Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
                     if(room == null || player == null){
-                        send(new DataPack(DataPack.A_ROOM_ENTER, false));
+                        socket.send(new DataPack(DataPack.A_ROOM_ENTER, false));
                     }
                     else{
                         // if room has reached its limit
                         if(room.getPlayers().size() >= 4){
-                            send(new DataPack(DataPack.A_ROOM_ENTER, false));
+                            socket.send(new DataPack(DataPack.A_ROOM_ENTER, false));
                         }
                         else{
                             room.addPlayer(player);
 
                             // send room player info back
-                            send(new DataPack(DataPack.A_ROOM_ENTER, true, DataPackUtil.getRoomPlayerInfoMessage(room)));
+                            socket.send(new DataPack(DataPack.A_ROOM_ENTER, true, DataPackUtil.getRoomPlayerInfoMessage(room)));
                         }
                     }
                     return;
@@ -182,9 +184,9 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     boolean isSuccessful = room.playerSelectPosition(player, position);
 
                     if(isSuccessful)
-                        send(new DataPack(DataPack.A_ROOM_POSITION_SELECT, true, DataPackUtil.getPlayerInfoMessage(player)));
+                        socket.send(new DataPack(DataPack.A_ROOM_POSITION_SELECT, true, DataPackUtil.getPlayerInfoMessage(player)));
                     else
-                        send(new DataPack(DataPack.E_ROOM_POSITION_SELECT, false));
+                        socket.send(new DataPack(DataPack.E_ROOM_POSITION_SELECT, false));
 
                     return;
                 }
@@ -293,7 +295,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
                     // broadcast disconnected info
                     room.broadcastToOthers(selfPlayer, dataPack);
 
-                    send(new DataPack(DataPack.A_GAME_EXIT, true));
+                    socket.send(new DataPack(DataPack.A_GAME_EXIT, true));
                     return;
                 }
                 default:
@@ -317,8 +319,7 @@ class DataPackSocketRunnable extends DataPackSocket implements Runnable {
         if(socketRunnable.socket == null)
             return false;
 
-        if(socketRunnable.socket.getInetAddress().equals(this.socket.getInetAddress())
-                && socketRunnable.socket.getPort() == this.socket.getPort()){
+        if(socketRunnable.socket.getInetSocketAddress().equals(this.socket.getInetSocketAddress())){
             return true;
         }
 
