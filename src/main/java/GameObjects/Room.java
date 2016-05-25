@@ -162,6 +162,21 @@ public class Room {
         parent.roomListChanged(this);
     }
 
+    private void removePlayerQuietly(Player player){
+        // remove the player from ready players' array.
+        for(int i = 0;i < 4;i ++){
+            if(player.equals(readyPlayers[i]))
+                readyPlayers[i] = null;
+        }
+
+        logger.info(player.toString() + " has left the room " + this.toString());
+
+        player.setStatus(Player.ROOM_SELECTING);
+        player.setRoom(null);
+        this.players.remove(player.getId());
+        parent.roomListChanged(this);
+    }
+
     public void startGame() {
         this.isPlaying = true;
         for(Player player : players.values())
@@ -177,6 +192,11 @@ public class Room {
     public void finishGame(){
         this.isPlaying = false;
         for(Player player : players.values()){
+            if(player.isInStatus(Player.DISCONNECTED)){
+                player.setStatus(Player.ROOM_WAITING);
+                removePlayerQuietly(player);
+                // TODO: we still have to delete the player in ObjectManager.
+            }
             player.setStatus(Player.ROOM_WAITING);
         }
         logger.info(this.toString() + " has finished the game.");
