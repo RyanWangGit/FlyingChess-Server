@@ -17,7 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Manages all the online objects including @ref
+ * Manages all the online objects including Player/Room
  */
 public class ObjectManager {
     private static Logger logger = LogManager.getLogger(ObjectManager.class.getName());
@@ -63,12 +63,39 @@ public class ObjectManager {
             return null;
         }
         else{
-           return playerManager.createPlayer(user);
+            // get former connection
+            Player currentPlayer = playerManager.getPlayer(user.getId());
+            if(currentPlayer == null){
+                Player player = playerManager.createPlayer(user);
+                logger.info(player.toString() + " logged in.");
+                return player;
+            }
+            else {
+                // close the former client connection
+                if(!currentPlayer.getSocket().equals(this)){
+                    try{
+                        currentPlayer.getSocket().close();
+                        currentPlayer.setSocket(null);
+                    } catch(IOException | NullPointerException e){
+                        logger.warn("Error occured closing former connection.");
+                    }
+                    finally {
+                        logger.info(currentPlayer.toString() + " logged in.");
+                        return currentPlayer;
+                    }
+                }
+            }
+            return null;
         }
     }
 
     public Player getPlayer(int playerId){
-        return playerManager.getPlayer(playerId);
+        // if it is a robot
+        if(playerId < 0 && playerId >= -4){
+            return new Player(new User(playerId, "Robot", null, 0), null);
+        }
+        else
+            return playerManager.getPlayer(playerId);
     }
 
     public void removePlayer(Player player){
@@ -81,22 +108,30 @@ public class ObjectManager {
         Room playerRoom = player.getRoom();
 
         if(playerRoom != null){
-            // send disconnected datapack
-            DataPack dataPack = new DataPack(DataPack.E_GAME_PLAYER_DISCONNECTED, DataPackUtil.getPlayerInfoMessage(player));
-            if(player.getStatus() != Player.PLAYING)
-                dataPack.setCommand(DataPack.E_ROOM_EXIT);
-            playerRoom.broadcastToOthers(player, dataPack);
-
             builder.append(" in room " + playerRoom.toString() + ". ");
             if(player.isHost()){
                 builder.append(player.toString() + " is host, prepare to remove the room.");
-
                 removeRoom(playerRoom);
             }
+            else{
+                // send disconnected datapack
+                DataPack dataPack = new DataPack(DataPack.INVALID, DataPackUtil.getPlayerInfoMessage(player));
+
+                if(!player.isInStatus(Player.PLAYING)){
+                    dataPack.setCommand(DataPack.E_ROOM_EXIT);
+                    playerManager.removePlayer(player);
+                }
+                else{
+                    dataPack.setCommand(DataPack.E_GAME_PLAYER_DISCONNECTED);
+                    player.setStatus(Player.DISCONNECTED);
+                }
+                playerRoom.broadcastToOthers(player, dataPack);
+            }
+        }
+        else {
+            playerManager.removePlayer(player);
         }
         logger.info(builder.toString());
-
-        playerManager.removePlayer(player);
     }
 
     public Room createRoom(String roomName, Player host){
@@ -107,20 +142,26 @@ public class ObjectManager {
     }
 
     public Room getRoom(int roomId){
-        return roomManager.getRoom(roomId);
+        Room room = roomManager.getRoom(roomId);
+        if(room == null)
+            throw new NullPointerException();
+
+        return room;
     }
 
     public void removeRoom(Room room){
-        for(Player roomPlayer : room.getPlayers())
-            roomPlayer.setStatus(Player.ROOM_SELECTING);
-
         // notify other players that host has exited
         Player host = room.getHost();
         if(host != null)
             room.broadcastToOthers(host, new DataPack(DataPack.E_ROOM_EXIT, DataPackUtil.getPlayerInfoMessage(host)));
 
+        for(Player roomPlayer : room.getPlayers()){
+            roomPlayer.setStatus(Player.ROOM_SELECTING);
+            roomPlayer.setRoom(null);
+        }
+        host.setHost(false);
         roomManager.removeRoom(room);
-        logger.info("Room removed: " + room.getId() + " " + room.getName());
+        logger.info("Room removed: " + room.toString());
         roomListChanged(room);
     }
 
@@ -142,45 +183,22 @@ class PlayerManager {
     private ObjectManager parent = null;
     private Map<Integer, Player> playerMap = null;
 
-    public PlayerManager(ObjectManager parent){
+    PlayerManager(ObjectManager parent){
         this.playerMap = new ConcurrentHashMap<>(100, 0.75f);
         this.parent = parent;
     }
 
-    public Player createPlayer(User user){
-        // get former connection
-        Player currentPlayer = this.playerMap.get(user.getId());
-        if(currentPlayer == null){
-            Player player = new Player(user, this);
-            this.playerMap.put(player.getId(), player);
-            return player;
-        }
-        else {
-            // close the former client connection
-            if(!currentPlayer.getSocket().equals(this)){
-                try{
-                    currentPlayer.getSocket().close();
-                    currentPlayer.setSocket(null);
-                } catch(IOException | NullPointerException e){
-                    logger.warn("Error occured closing former connection.");
-                }
-                finally {
-                    return currentPlayer;
-                }
-            }
-        }
-        return null;
+    Player createPlayer(User user){
+        Player player = new Player(user, this);
+        this.playerMap.put(player.getId(), player);
+        return player;
     }
 
-    public Player getPlayer(int id) {
-        // if it is a robot
-        if(id < 0 && id >= -4)
-            return new Player(new User(id, "Robot", null, 0), null);
-        else
-            return this.playerMap.get(id);
+    Player getPlayer(int id) {
+        return this.playerMap.get(id);
     }
 
-    public void removePlayer(Player player){
+    void removePlayer(Player player){
         try{
             this.playerMap.remove(player.getId());
             player.getSocket().close();
@@ -189,7 +207,7 @@ class PlayerManager {
         }
     }
 
-    public Collection<Player> getAllPlayers(){
+    Collection<Player> getAllPlayers(){
         return Collections.unmodifiableCollection(this.playerMap.values());
     }
 }
@@ -201,31 +219,31 @@ class RoomManager {
     private Map<Integer, Room> rooms = null;
     private int nextId = 0;
 
-    public RoomManager(ObjectManager parent){
+    RoomManager(ObjectManager parent){
         this.parent = parent;
         this.rooms = new ConcurrentHashMap<>(100, 0.75f);
     }
 
-    public Room getRoom(int roomId){
+    Room getRoom(int roomId){
         return this.rooms.get(roomId);
     }
 
-    public synchronized Room createRoom(String roomName){
+    synchronized Room createRoom(String roomName){
         Room room = new Room(nextId, roomName, this);
         this.rooms.put(nextId, room);
         nextId++;
         parent.roomListChanged(room);
-        logger.info("Room created: " + room.getId() + " " + room.getName());
+        logger.info("Room created: " + room.toString());
         return room;
     }
 
-    public void removeRoom(Room room) { this.rooms.remove(room.getId()); }
+    void removeRoom(Room room) { this.rooms.remove(room.getId()); }
 
     protected void roomListChanged(Room changedRoom){
         parent.roomListChanged(changedRoom);
     }
 
-    public Collection<Room> getAllRooms(){
+    Collection<Room> getAllRooms(){
         return Collections.unmodifiableCollection(this.rooms.values());
     }
 }

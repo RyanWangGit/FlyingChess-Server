@@ -10,7 +10,12 @@ import java.util.List;
 /**
  * Created by Ryan on 16/5/2.
  */
-public class DataPackUtil {
+public final class DataPackUtil {
+
+    private DataPackUtil(){
+        throw new AssertionError();
+    }
+
     public static List<String> getRoomsMessage(ObjectManager objectManager){
         List<String> msgList = new LinkedList<>();
         for(Room room : objectManager.getAllRooms()){

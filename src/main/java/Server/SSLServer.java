@@ -2,12 +2,12 @@ package Server;
 
 import Config.Config;
 import DataPack.DataPack;
+import DataPack.DataPackTcpSocket;
 import Database.Database;
 import GameObjects.ObjectManager;
 import GameObjects.Player;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ObjectArrayMessage;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -47,7 +47,7 @@ public class SSLServer implements Server {
             while(true){
                 Socket sock = server.accept();
                 logger.info("Accepted new socket " + sock.getRemoteSocketAddress().toString());
-                Runnable socketRunnable = new DataPackSocketRunnable(objectManager, sock);
+                Runnable socketRunnable = new DataPackSocketRunnable(objectManager, new DataPackTcpSocket(sock));
                 this.socketExecutor.submit(socketRunnable);
             }
 
