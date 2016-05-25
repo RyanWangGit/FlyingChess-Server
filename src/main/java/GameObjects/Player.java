@@ -1,19 +1,20 @@
 package GameObjects;
 
-import Server.DataPackSocket;
+import DataPack.DataPackTcpSocket;
 
 /**
  * Created by Ryan on 16/4/27.
  */
 public class Player extends User {
     private boolean isHost = false;
-    private DataPackSocket socket = null;
+    private DataPackTcpSocket socket = null;
     private int status = 0;
     private PlayerManager parent = null;
     private Room room = null;
     public static final int ROOM_SELECTING = 0;
     public static final int ROOM_WAITING = 1;
     public static final int PLAYING = 2;
+    public static final int DISCONNECTED = 3;
 
     Player(User user, PlayerManager parent){
         super(user);
@@ -28,9 +29,9 @@ public class Player extends User {
 
     public void setHost(boolean isHost) { this.isHost = isHost; }
 
-    public void setSocket(DataPackSocket socket) { this.socket = socket; }
+    public void setSocket(DataPackTcpSocket socket) { this.socket = socket; }
 
-    public DataPackSocket getSocket() { return this.socket; }
+    public DataPackTcpSocket getSocket() { return this.socket; }
 
     @Override
     public boolean equals(Object obj){
@@ -50,7 +51,7 @@ public class Player extends User {
         return this.id;
     }
 
-    public int getStatus() { return this.status; }
+    public boolean isInStatus(int status) { return this.status == status; }
 
     public void setStatus(int status) { this.status = status; }
 

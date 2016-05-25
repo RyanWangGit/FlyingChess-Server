@@ -3,3 +3,6 @@ target/
 *.iml
 .idea/
 logs/
+*.sh
+flyingchess.jks
+config.xml
