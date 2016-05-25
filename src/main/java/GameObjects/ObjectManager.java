@@ -102,7 +102,36 @@ public class ObjectManager {
         if(player == null)
             return;
 
-        playerManager.removePlayer(player);
+        StringBuilder builder = new StringBuilder();
+        builder.append("Player " + player.toString() + " got disconnetd");
+
+        Room playerRoom = player.getRoom();
+
+        if(playerRoom != null){
+            builder.append(" in room " + playerRoom.toString() + ". ");
+            if(player.isHost()){
+                builder.append(player.toString() + " is host, prepare to remove the room.");
+                removeRoom(playerRoom);
+            }
+            else{
+                // send disconnected datapack
+                DataPack dataPack = new DataPack(DataPack.INVALID, DataPackUtil.getPlayerInfoMessage(player));
+
+                if(!player.isInStatus(Player.PLAYING)){
+                    dataPack.setCommand(DataPack.E_ROOM_EXIT);
+                    playerManager.removePlayer(player);
+                }
+                else{
+                    dataPack.setCommand(DataPack.E_GAME_PLAYER_DISCONNECTED);
+                    player.setStatus(Player.DISCONNECTED);
+                }
+                playerRoom.broadcastToOthers(player, dataPack);
+            }
+        }
+        else {
+            playerManager.removePlayer(player);
+        }
+        logger.info(builder.toString());
     }
 
     public Room createRoom(String roomName, Player host){
@@ -113,7 +142,11 @@ public class ObjectManager {
     }
 
     public Room getRoom(int roomId){
-        return roomManager.getRoom(roomId);
+        Room room = roomManager.getRoom(roomId);
+        if(room == null)
+            throw new NullPointerException();
+
+        return room;
     }
 
     public void removeRoom(Room room){
@@ -126,6 +159,7 @@ public class ObjectManager {
             roomPlayer.setStatus(Player.ROOM_SELECTING);
             roomPlayer.setRoom(null);
         }
+        host.setHost(false);
         roomManager.removeRoom(room);
         logger.info("Room removed: " + room.toString());
         roomListChanged(room);
@@ -149,22 +183,22 @@ class PlayerManager {
     private ObjectManager parent = null;
     private Map<Integer, Player> playerMap = null;
 
-    public PlayerManager(ObjectManager parent){
+    PlayerManager(ObjectManager parent){
         this.playerMap = new ConcurrentHashMap<>(100, 0.75f);
         this.parent = parent;
     }
 
-    public Player createPlayer(User user){
+    Player createPlayer(User user){
         Player player = new Player(user, this);
         this.playerMap.put(player.getId(), player);
         return player;
     }
 
-    public Player getPlayer(int id) {
+    Player getPlayer(int id) {
         return this.playerMap.get(id);
     }
 
-    public void removePlayer(Player player){
+    void removePlayer(Player player){
         try{
             this.playerMap.remove(player.getId());
             player.getSocket().close();
@@ -173,7 +207,7 @@ class PlayerManager {
         }
     }
 
-    public Collection<Player> getAllPlayers(){
+    Collection<Player> getAllPlayers(){
         return Collections.unmodifiableCollection(this.playerMap.values());
     }
 }
@@ -185,16 +219,16 @@ class RoomManager {
     private Map<Integer, Room> rooms = null;
     private int nextId = 0;
 
-    public RoomManager(ObjectManager parent){
+    RoomManager(ObjectManager parent){
         this.parent = parent;
         this.rooms = new ConcurrentHashMap<>(100, 0.75f);
     }
 
-    public Room getRoom(int roomId){
+    Room getRoom(int roomId){
         return this.rooms.get(roomId);
     }
 
-    public synchronized Room createRoom(String roomName){
+    synchronized Room createRoom(String roomName){
         Room room = new Room(nextId, roomName, this);
         this.rooms.put(nextId, room);
         nextId++;
@@ -203,13 +237,13 @@ class RoomManager {
         return room;
     }
 
-    public void removeRoom(Room room) { this.rooms.remove(room.getId()); }
+    void removeRoom(Room room) { this.rooms.remove(room.getId()); }
 
     protected void roomListChanged(Room changedRoom){
         parent.roomListChanged(changedRoom);
     }
 
-    public Collection<Room> getAllRooms(){
+    Collection<Room> getAllRooms(){
         return Collections.unmodifiableCollection(this.rooms.values());
     }
 }

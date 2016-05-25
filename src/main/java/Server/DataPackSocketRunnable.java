@@ -50,36 +50,7 @@ class DataPackSocketRunnable implements Runnable {
             logger.catching(e);
         }
         finally {
-            StringBuilder builder = new StringBuilder();
-            builder.append("Player " + selfPlayer.toString() + " got disconnetd");
-
-            Room playerRoom = selfPlayer.getRoom();
-
-            if(playerRoom != null){
-                builder.append(" in room " + playerRoom.toString() + ". ");
-                if(selfPlayer.isHost()){
-                    builder.append(selfPlayer.toString() + " is host, prepare to remove the room.");
-                    objectManager.removeRoom(playerRoom);
-                }
-                else{
-                    // send disconnected datapack
-                    DataPack dataPack = new DataPack(DataPack.INVALID, DataPackUtil.getPlayerInfoMessage(selfPlayer));
-
-                    if(!selfPlayer.isInStatus(Player.PLAYING)){
-                        dataPack.setCommand(DataPack.E_ROOM_EXIT);
-                        objectManager.removePlayer(selfPlayer);
-                    }
-                    else{
-                        dataPack.setCommand(DataPack.E_GAME_PLAYER_DISCONNECTED);
-                        selfPlayer.setStatus(Player.DISCONNECTED);
-                    }
-                    playerRoom.broadcastToOthers(selfPlayer, dataPack);
-                }
-            }
-            else
-                objectManager.removePlayer(selfPlayer);
-
-            logger.info(builder.toString());
+            objectManager.removePlayer(selfPlayer);
         }
     }
 
@@ -179,6 +150,7 @@ class DataPackSocketRunnable implements Runnable {
                 case DataPack.R_ROOM_POSITION_SELECT:{
                     Player player = objectManager.getPlayer(Integer.valueOf(dataPack.getMessage(0)));
                     Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
+
                     int position = Integer.valueOf(dataPack.getMessage(4));
 
                     boolean isSuccessful = room.playerSelectPosition(player, position);
@@ -195,13 +167,10 @@ class DataPackSocketRunnable implements Runnable {
                     Room room = objectManager.getRoom(Integer.valueOf(dataPack.getMessage(1)));
 
                     // remove the room if host exits
-                    if(player.isHost()) {
+                    if(player.isHost())
                         objectManager.removeRoom(room);
-                        player.setHost(false);
-                    }
-                    else{
+                    else
                         room.removePlayer(player);
-                    }
 
                     return;
                 }
