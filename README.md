@@ -15,4 +15,4 @@ it a universal ssl server model.
 * There could be clients in all different forms because the server basically provides standalized `Json` strings for communications.
 
 ## License
-![MIT](https://github.com/RyanWangGit/FlyingChess-Server/blob/master/LICENSE.md).
+[MIT](https://github.com/RyanWangGit/FlyingChess-Server/blob/master/LICENSE.md).
