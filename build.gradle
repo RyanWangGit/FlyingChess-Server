@@ -1,0 +1,46 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'application'
+
+mainClassName = 'Main.Main'
+
+version = '0.1.0'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+repositories {
+	mavenCentral()
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Flying Chess Server',
+                'Implementation-Version': version,
+                'Main-Class': 'Main.Main'
+    }
+	baseName = 'FlyingChess-Server'
+}
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Flying Chess Server',
+                'Implementation-Version': version,
+                'Main-Class': 'Main.Main'
+    }
+    baseName = project.name + '-with-dependencies'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+
+dependencies {
+	compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.6'
+	compile group: 'mysql', name: 'mysql-connector-java', version: '6.0.2'
+	compile group: 'com.google.code.gson', name: 'gson', version: '2.6.2'
+	compile group: 'dom4j', name: 'dom4j', version: '1.6.1'
+}
+
+task wrapper (type: Wrapper) {
+	gradleVersion = '2.13'
+}
