@@ -6,3 +6,5 @@ logs/
 *.sh
 flyingchess.jks
 config.xml
+build/
+.gradle/
