@@ -1,9 +1,11 @@
-package Main;
+package flyingchess.Main;
 
 
-import Config.Config;
-import Config.XMLConfig;
-import Server.SSLServer;
+import core.Config.Config;
+import core.Config.XMLConfig;
+import core.Server.SSLServer;
+import core.Server.Server;
+import flyingchess.GameObjects.ObjectManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -11,8 +13,9 @@ import java.io.File;
 
 public class Main {
     private static Logger logger = LogManager.getLogger(Main.class.getName());
-    private static SSLServer server = null;
+    private static Server server = null;
     private static Config serverConfig = null;
+    private static ObjectManager objectManager = new ObjectManager();
 
     public static void main(String[] args){
         logger.info("Setting up server");
@@ -24,6 +27,7 @@ public class Main {
         serverConfig = new XMLConfig(new File(args[0]));
         server = new SSLServer(serverConfig);
         logger.info("Server setup finished, ready to work.");
-        server.start();
+        FCDataPackProcessor processor = new FCDataPackProcessor(objectManager);
+        server.start(processor);
     }
 }

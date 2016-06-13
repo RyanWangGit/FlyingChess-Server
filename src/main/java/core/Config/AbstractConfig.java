@@ -1,4 +1,4 @@
-package Config;
+package core.Config;
 
 import java.io.File;
 

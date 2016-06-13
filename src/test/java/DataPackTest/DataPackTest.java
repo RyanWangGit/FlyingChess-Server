@@ -1,8 +1,8 @@
 package DataPackTest;
 
-import DataPack.DataPack;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import core.DataPack.DataPack;
 
 /**
  * Created by Ryan on 16/4/10.

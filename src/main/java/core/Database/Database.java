@@ -1,7 +1,7 @@
-package Database;
+package core.Database;
 
-import Config.Config;
-import GameObjects.User;
+import core.Config.Config;
+import flyingchess.GameObjects.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

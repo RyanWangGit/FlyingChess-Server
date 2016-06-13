@@ -28,7 +28,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                             <mainClass>Main.Main</mainClass>
+                             <mainClass>flyingchess.Main.Main</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

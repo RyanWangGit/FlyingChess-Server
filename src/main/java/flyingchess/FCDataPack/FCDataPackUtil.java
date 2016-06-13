@@ -1,8 +1,8 @@
-package DataPack;
+package flyingchess.FCDataPack;
 
-import GameObjects.Player;
-import GameObjects.Room;
-import GameObjects.ObjectManager;
+import flyingchess.GameObjects.ObjectManager;
+import flyingchess.GameObjects.Player;
+import flyingchess.GameObjects.Room;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -10,16 +10,16 @@ import java.util.List;
 /**
  * Created by Ryan on 16/5/2.
  */
-public final class DataPackUtil {
+public final class FCDataPackUtil {
 
-    private DataPackUtil(){
+    private FCDataPackUtil(){
         throw new AssertionError();
     }
 
     public static List<String> getRoomsMessage(ObjectManager objectManager){
         List<String> msgList = new LinkedList<>();
         for(Room room : objectManager.getAllRooms()){
-            msgList.addAll(DataPackUtil.getRoomInfoMessage(room));
+            msgList.addAll(FCDataPackUtil.getRoomInfoMessage(room));
         }
         return msgList;
     }
