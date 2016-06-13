@@ -1,4 +1,4 @@
-package Config;
+package core.Config;
 
 
 import org.apache.logging.log4j.LogManager;

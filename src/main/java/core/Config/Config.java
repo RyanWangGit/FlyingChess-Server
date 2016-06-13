@@ -1,4 +1,4 @@
-package Config;
+package core.Config;
 
 import java.io.File;
 
@@ -14,7 +14,7 @@ public interface Config {
 
 
     /**
-     * Database related configs.
+     * core.Database related configs.
      */
 
     /**
@@ -48,7 +48,7 @@ public interface Config {
     String getDataBasePassword();
 
     /**
-     * Server related configs.
+     * core.Server related configs.
      */
 
     /**

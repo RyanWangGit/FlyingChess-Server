@@ -1,7 +1,7 @@
 package ConfigTest;
 
-import Config.Config;
-import Config.XMLConfig;
+import core.Config.Config;
+import core.Config.XMLConfig;
 
 import java.io.File;
 
