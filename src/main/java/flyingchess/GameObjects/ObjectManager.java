@@ -1,10 +1,11 @@
-package GameObjects;
+package flyingchess.GameObjects;
 
-import DataPack.DataPack;
-import DataPack.DataPackUtil;
-import Database.Database;
-import PlayerFilter.RoomSelectingFilter;
-import Server.BroadcastRunnable;
+import core.DataPack.DataPack;
+import flyingchess.FCDataPack.FCDataPack;
+import flyingchess.FCDataPack.FCDataPackUtil;
+import core.Database.Database;
+import flyingchess.Main.BroadcastRunnable;
+import flyingchess.PlayerFilter.RoomSelectingFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -41,7 +42,7 @@ public class ObjectManager {
         if(broadcastRunnable != null)
             broadcastRunnable.shutdown();
 
-        DataPack dataPack = new DataPack(DataPack.A_ROOM_LOOKUP, DataPackUtil.getRoomsMessage(this));
+        DataPack dataPack = new FCDataPack(FCDataPack.A_ROOM_LOOKUP, FCDataPackUtil.getRoomsMessage(this));
         this.broadcastRunnable = new BroadcastRunnable(getAllPlayers(), new RoomSelectingFilter(), dataPack);
         executor.submit(this.broadcastRunnable);
 
@@ -115,14 +116,14 @@ public class ObjectManager {
             }
             else{
                 // send disconnected datapack
-                DataPack dataPack = new DataPack(DataPack.INVALID, DataPackUtil.getPlayerInfoMessage(player));
+                DataPack dataPack = new DataPack(DataPack.INVALID, FCDataPackUtil.getPlayerInfoMessage(player));
 
                 if(!player.isInStatus(Player.PLAYING)){
-                    dataPack.setCommand(DataPack.E_ROOM_EXIT);
+                    dataPack.setCommand(FCDataPack.E_ROOM_EXIT);
                     playerManager.removePlayer(player);
                 }
                 else{
-                    dataPack.setCommand(DataPack.E_GAME_PLAYER_DISCONNECTED);
+                    dataPack.setCommand(FCDataPack.E_GAME_PLAYER_DISCONNECTED);
                     player.setStatus(Player.DISCONNECTED);
                 }
                 playerRoom.broadcastToOthers(player, dataPack);
@@ -153,7 +154,7 @@ public class ObjectManager {
         // notify other players that host has exited
         Player host = room.getHost();
         if(host != null)
-            room.broadcastToOthers(host, new DataPack(DataPack.E_ROOM_EXIT, DataPackUtil.getPlayerInfoMessage(host)));
+            room.broadcastToOthers(host, new FCDataPack(FCDataPack.E_ROOM_EXIT, FCDataPackUtil.getPlayerInfoMessage(host)));
 
         for(Player roomPlayer : room.getPlayers()){
             roomPlayer.setStatus(Player.ROOM_SELECTING);

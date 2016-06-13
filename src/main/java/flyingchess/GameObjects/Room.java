@@ -1,7 +1,8 @@
-package GameObjects;
+package flyingchess.GameObjects;
 
-import DataPack.DataPack;
-import DataPack.DataPackUtil;
+import core.DataPack.DataPack;
+import flyingchess.FCDataPack.FCDataPack;
+import flyingchess.FCDataPack.FCDataPackUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -52,7 +53,7 @@ public class Room {
         this.players.put(player.getId(), player);
 
         // notify other players
-        broadcastToOthers(player, new DataPack(DataPack.E_ROOM_ENTER, DataPackUtil.getPlayerInfoMessage(player)));
+        broadcastToOthers(player, new FCDataPack(FCDataPack.E_ROOM_ENTER, FCDataPackUtil.getPlayerInfoMessage(player)));
 
         logger.info(player.toString() + " has entered the room " + this.toString());
         parent.roomListChanged(this);
@@ -112,7 +113,7 @@ public class Room {
         }
 
         // notify other players
-        broadcastToOthers(player, new DataPack(DataPack.E_ROOM_POSITION_SELECT, true, DataPackUtil.getPlayerInfoMessage(player)));
+        broadcastToOthers(player, new FCDataPack(FCDataPack.E_ROOM_POSITION_SELECT, true, FCDataPackUtil.getPlayerInfoMessage(player)));
         return true;
     }
 
@@ -146,7 +147,7 @@ public class Room {
 
     public void removePlayer(Player player){
         // notify other players
-        broadcastToOthers(player, new DataPack(DataPack.E_ROOM_EXIT, DataPackUtil.getPlayerInfoMessage(player)));
+        broadcastToOthers(player, new FCDataPack(FCDataPack.E_ROOM_EXIT, FCDataPackUtil.getPlayerInfoMessage(player)));
 
         // remove the player from ready players' array.
         for(int i = 0;i < 4;i ++){
@@ -183,7 +184,7 @@ public class Room {
             player.setStatus(Player.PLAYING);
 
         // send out game start signal to the players
-        broadcastToAll(new DataPack(DataPack.E_GAME_START, true));
+        broadcastToAll(new FCDataPack(FCDataPack.E_GAME_START, true));
 
         logger.info(this.toString() + " has started the game.");
         parent.roomListChanged(this);

@@ -1,6 +1,6 @@
-package GameObjects;
+package flyingchess.GameObjects;
 
-import DataPack.DataPackTcpSocket;
+import core.DataPack.DataPackTcpSocket;
 
 /**
  * Created by Ryan on 16/4/27.

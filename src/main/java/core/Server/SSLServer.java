@@ -1,11 +1,9 @@
-package Server;
+package core.Server;
 
-import Config.Config;
-import DataPack.DataPack;
-import DataPack.DataPackTcpSocket;
-import Database.Database;
-import GameObjects.ObjectManager;
-import GameObjects.Player;
+import core.Config.Config;
+import core.DataPack.DataPackProcessor;
+import core.DataPack.DataPackTcpSocket;
+import core.Database.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,7 +24,6 @@ public class SSLServer implements Server {
     private SSLServerSocket server = null;
     private Config config = null;
     private ExecutorService socketExecutor = null;
-    private ObjectManager objectManager = null;
 
 
     public SSLServer(Config config){
@@ -34,10 +31,9 @@ public class SSLServer implements Server {
         Database.initialize(config);
         this.config = config;
         this.socketExecutor = Executors.newCachedThreadPool();
-        this.objectManager = new ObjectManager();
     }
 
-    public void start() {
+    public void start(DataPackProcessor processor) {
         try {
             if(server == null || !server.isBound() || server.isClosed())
                 this.server = createServerSocket(config.getDataPort());
@@ -47,7 +43,7 @@ public class SSLServer implements Server {
             while(true){
                 Socket sock = server.accept();
                 logger.info("Accepted new socket " + sock.getRemoteSocketAddress().toString());
-                Runnable socketRunnable = new DataPackSocketRunnable(objectManager, new DataPackTcpSocket(sock));
+                Runnable socketRunnable = new DataPackSocketRunnable(processor, new DataPackTcpSocket(sock));
                 this.socketExecutor.submit(socketRunnable);
             }
 
@@ -90,19 +86,7 @@ public class SSLServer implements Server {
     }
 
 
-
-
     public void shutdown(){
-        try{
-            // send shutdown datapack to ever online users
-            // and close the socket.
-            for(Player player : objectManager.getAllPlayers()){
-                player.getSocket().send(new DataPack(DataPack.TERMINATE));
-                player.getSocket().close();
-            }
 
-        } catch(Exception e){
-            logger.catching(e);
-        }
     }
 }

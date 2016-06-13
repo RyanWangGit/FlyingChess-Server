@@ -1,8 +1,8 @@
-package Server;
+package flyingchess.Main;
 
-import DataPack.DataPack;
-import GameObjects.Player;
-import PlayerFilter.PlayerFilter;
+import core.DataPack.DataPack;
+import flyingchess.GameObjects.Player;
+import flyingchess.PlayerFilter.PlayerFilter;
 
 import java.util.Collection;
 

@@ -1,6 +1,6 @@
 package MainTest;
 
-import Main.Main;
+import flyingchess.Main.Main;
 
 /**
  * Created by Ryan on 16/4/1.
