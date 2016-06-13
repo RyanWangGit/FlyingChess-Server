@@ -14,8 +14,12 @@ repositories {
 }
 
 jar {
+    manifest {
+        attributes 'Implementation-Title': 'Flying Chess Server',
+                'Implementation-Version': version,
+                'Main-Class': 'Main.Main'
+    }
 	baseName = 'FlyingChess-Server'
-	
 }
 
 task fatJar(type: Jar) {
