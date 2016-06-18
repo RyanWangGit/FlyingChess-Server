@@ -18,7 +18,10 @@ import java.security.KeyStore;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
+/**
+ * SSLServer main class.
+ * @author Ryan Wang
+ */
 public class SSLServer implements Server {
     private static Logger logger = LogManager.getLogger(SSLServer.class.getName());
     private SSLServerSocket server = null;
@@ -26,6 +29,10 @@ public class SSLServer implements Server {
     private ExecutorService socketExecutor = null;
 
 
+    /**
+     * Constructs the server with {@link core.Config.Config Config}.
+     * @param config The config to setup the server, provides all essential configurations the server needs.
+     */
     public SSLServer(Config config){
         // initialize database
         Database.initialize(config);
@@ -33,6 +40,12 @@ public class SSLServer implements Server {
         this.socketExecutor = Executors.newCachedThreadPool();
     }
 
+    /**
+     * Server starts listening for incoming connections with the defined {@link DataPackProcessor},
+     * note that it is a blocking method and needs to be run in separate thread
+     * if you don't want your application to be non-responsible.
+     * @param processor The processor to process the incoming data pack.
+     */
     public void start(DataPackProcessor processor) {
         try {
             if(server == null || !server.isBound() || server.isClosed())
@@ -85,8 +98,10 @@ public class SSLServer implements Server {
         return socket;
     }
 
-
+    /**
+     * Shutdown the server, stops listening.
+     */
     public void shutdown(){
-
+        //TODO: wake the server up and stops listening.
     }
 }

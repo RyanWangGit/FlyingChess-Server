@@ -3,7 +3,8 @@ package core.Config;
 import java.io.File;
 
 /**
- * Created by Ryan on 16/4/11.
+ * Provides universal interface for the server's configurations
+ * @author Ryan Wang
  */
 public interface Config {
     /**
@@ -14,7 +15,7 @@ public interface Config {
 
 
     /**
-     * core.Database related configs.
+     * Database related configs.
      */
 
     /**
@@ -48,7 +49,7 @@ public interface Config {
     String getDataBasePassword();
 
     /**
-     * core.Server related configs.
+     * Server related configs.
      */
 
     /**

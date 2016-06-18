@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.net.SocketException;
 
 /**
- * Created by Ryan on 16/4/12.
+ * Implement runnable for each incoming connection to be scheduled in
+ * {@link java.util.concurrent.ExecutorService ExecutorService}.
+ * @author Ryan Wang
  */
 class DataPackSocketRunnable implements Runnable {
     private static Logger logger = LogManager.getLogger(DataPackSocketRunnable.class.getName());
@@ -23,6 +25,9 @@ class DataPackSocketRunnable implements Runnable {
         processor.started(socket);
     }
 
+    /**
+     * Main run method, enter a receiving loop and process each data pack.
+     */
     public void run(){
         try{
 

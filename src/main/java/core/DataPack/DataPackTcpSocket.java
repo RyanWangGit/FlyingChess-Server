@@ -14,7 +14,9 @@ import java.net.SocketException;
 import java.nio.charset.Charset;
 
 /**
- * Created by Ryan on 16/4/26.
+ * Simple wrapper for tcp stream socket for transmitting data packs in which
+ * {@link DataPack} is atomic and basic unit.
+ * @author Ryan Wang
  */
 public class DataPackTcpSocket {
     private static Logger logger = LogManager.getLogger(DataPackTcpSocket.class.getName());

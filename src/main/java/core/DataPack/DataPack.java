@@ -4,7 +4,8 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Created by Ryan on 16/4/8.
+ * Basic class data pack object, which should be extended with application-specific commands.
+ * @author Ryan Wang
  */
 public class DataPack {
     /**

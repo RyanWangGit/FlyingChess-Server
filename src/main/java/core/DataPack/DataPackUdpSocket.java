@@ -11,7 +11,9 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 
 /**
- * Created by Ryan on 16/5/15.
+ * Simple wrapper for udp datagram socket for transmitting data packs in which
+ * {@link DataPack} is atomic and basic unit.
+ * @author Ryan Wang
  */
 public class DataPackUdpSocket {
     private Logger logger = LogManager.getLogger(DataPackUdpSocket.class.getName());
