@@ -3,7 +3,8 @@ package core.Server;
 import core.DataPack.DataPackProcessor;
 
 /**
- * Created by Ryan on 16/4/2.
+ * Provides basic interface for servers.
+ * @author Ryan Wang
  */
 public interface Server {
 

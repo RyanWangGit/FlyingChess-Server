@@ -8,8 +8,10 @@ import org.apache.logging.log4j.Logger;
 import java.sql.*;
 
 /**
- * Created by Ryan on 16/4/18.
+ * Simple wrapper for database operations.
+ * @author Ryan Wang
  */
+//TODO: Need to modify this class to make it application-unrelated.
 public class Database {
     private static Logger logger = LogManager.getLogger(Database.class.getName());
     private static Config config = null;

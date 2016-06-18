@@ -11,7 +11,8 @@ import org.dom4j.io.SAXReader;
 import java.io.File;
 
 /**
- * Created by Ryan on 16/4/6.
+ * Stores the server's configurations in XML style.
+ * @author Ryan Wang
  */
 public class XMLConfig extends AbstractConfig {
     private static Logger logger = LogManager.getLogger(XMLConfig.class.getName());
