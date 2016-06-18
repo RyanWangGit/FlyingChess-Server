@@ -3,7 +3,9 @@ package core.Config;
 import java.io.File;
 
 /**
- * Created by Ryan on 16/4/6.
+ * Provide basic implementations of getter and setter, note that
+ * load(File file) is abstract and needs to be implemented.
+ * @author Ryan Wang
  */
 public abstract class AbstractConfig implements Config {
     protected int dataPort = 6666;

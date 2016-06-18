@@ -3,7 +3,9 @@ package core.DataPack;
 import java.io.IOException;
 
 /**
- * Created by Ryan on 16/6/13.
+ * Provides essential interface to process an incoming data pack.
+ * It is passed into the server on starting, and may store any types of objects for specific applications.
+ * @author Ryan Wang
  */
 public interface DataPackProcessor {
 
