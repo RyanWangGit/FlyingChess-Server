@@ -1,7 +1,8 @@
-package core.DataPack;
+package core.Server;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import core.DataPack.DataPack;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

@@ -1,8 +1,8 @@
 package flyingchess.Main;
 
 import core.DataPack.DataPack;
-import core.DataPack.DataPackProcessor;
-import core.DataPack.DataPackTcpSocket;
+import core.Server.DataPackProcessor;
+import core.Server.DataPackTcpSocket;
 import flyingchess.FCDataPack.FCDataPackUtil;
 import core.Database.Database;
 import flyingchess.FCDataPack.FCDataPack;

@@ -1,4 +1,6 @@
-package core.DataPack;
+package core.Server;
+
+import core.DataPack.DataPack;
 
 import java.io.IOException;
 
