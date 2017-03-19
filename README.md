@@ -15,4 +15,4 @@ Note that `pom.xml` which `Maven` needs is also provided but no longer maintaine
 * There could be clients in all different forms because the server basically provides standalized `Json` strings for communications.
 
 ## License
-[MIT](https://github.com/RyanWangGit/FlyingChess-Server/blob/master/LICENSE.md).
+[MIT](https://github.com/RyanWangGit/FlyingChess-Server/blob/master/LICENSE).
