@@ -19,12 +19,15 @@ public class Main {
 
     public static void main(String[] args){
         logger.info("Setting up server");
+        String configPath;
         if(args.length < 1){
             logger.info("Too few arguments, try to find config.xml in current directory.");
-            args = new String[1];
-            args[0] = "./config.xml";
+            configPath = "./config.xml";
         }
-        serverConfig = new XMLConfig(new File(args[0]));
+        else{
+            configPath = args[0];
+        }
+        serverConfig = new XMLConfig(new File(configPath));
         server = new SSLServer(serverConfig);
         logger.info("Server setup finished, ready to work.");
         FCDataPackProcessor processor = new FCDataPackProcessor(objectManager);
