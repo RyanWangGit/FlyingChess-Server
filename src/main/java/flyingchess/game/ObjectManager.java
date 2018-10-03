@@ -145,7 +145,7 @@ public class ObjectManager {
     public Room getRoom(int roomId){
         Room room = roomManager.getRoom(roomId);
         if(room == null)
-            throw new NullPointerException();
+            throw new IllegalArgumentException();
 
         return room;
     }
