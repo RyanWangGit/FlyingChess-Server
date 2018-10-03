@@ -54,7 +54,7 @@ public class DataPackUdpSocket {
      * Close the socket.
      */
     public void close() throws IOException {
-
+        this.socket.close();
     }
 
     public InetSocketAddress getInetSocketAddress() {
