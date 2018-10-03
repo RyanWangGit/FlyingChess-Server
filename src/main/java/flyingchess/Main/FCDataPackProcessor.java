@@ -1,14 +1,14 @@
-package flyingchess.Main;
+package flyingchess.main;
 
-import core.DataPack.DataPack;
-import core.DataPack.DataPackProcessor;
-import core.DataPack.DataPackTcpSocket;
-import flyingchess.FCDataPack.FCDataPackUtil;
-import core.Database.Database;
-import flyingchess.FCDataPack.FCDataPack;
-import flyingchess.GameObjects.ObjectManager;
-import flyingchess.GameObjects.Player;
-import flyingchess.GameObjects.Room;
+import core.datapack.DataPack;
+import core.datapack.DataPackProcessor;
+import core.datapack.DataPackTcpSocket;
+import flyingchess.fcdatapack.FCDataPackUtil;
+import core.database.Database;
+import flyingchess.fcdatapack.FCDataPack;
+import flyingchess.game.ObjectManager;
+import flyingchess.game.Player;
+import flyingchess.game.Room;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

@@ -1,11 +1,11 @@
-package flyingchess.GameObjects;
+package flyingchess.game;
 
-import core.DataPack.DataPack;
-import flyingchess.FCDataPack.FCDataPack;
-import flyingchess.FCDataPack.FCDataPackUtil;
-import core.Database.Database;
-import flyingchess.Main.BroadcastRunnable;
-import flyingchess.PlayerFilter.RoomSelectingFilter;
+import core.datapack.DataPack;
+import flyingchess.fcdatapack.FCDataPack;
+import flyingchess.fcdatapack.FCDataPackUtil;
+import core.database.Database;
+import flyingchess.main.BroadcastRunnable;
+import flyingchess.filters.RoomSelectingFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

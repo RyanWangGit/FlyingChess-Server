@@ -1,6 +1,6 @@
-package core.Server;
+package core.server;
 
-import core.DataPack.DataPackProcessor;
+import core.datapack.DataPackProcessor;
 
 /**
  * Provides basic interface for servers.

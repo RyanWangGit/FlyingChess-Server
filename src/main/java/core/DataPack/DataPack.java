@@ -1,4 +1,4 @@
-package core.DataPack;
+package core.datapack;
 
 import java.util.Date;
 import java.util.List;

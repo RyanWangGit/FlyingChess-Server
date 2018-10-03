@@ -1,9 +1,9 @@
-package core.Server;
+package core.server;
 
-import core.Config.Config;
-import core.DataPack.DataPackProcessor;
-import core.DataPack.DataPackTcpSocket;
-import core.Database.Database;
+import core.config.Config;
+import core.datapack.DataPackProcessor;
+import core.datapack.DataPackTcpSocket;
+import core.database.Database;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,7 +30,7 @@ public class SSLServer implements Server {
 
 
     /**
-     * Constructs the server with {@link core.Config.Config Config}.
+     * Constructs the server with {@link core.config.Config config}.
      * @param config The config to setup the server, provides all essential configurations the server needs.
      */
     public SSLServer(Config config){

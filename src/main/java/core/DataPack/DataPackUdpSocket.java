@@ -1,4 +1,4 @@
-package core.DataPack;
+package core.datapack;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

@@ -1,11 +1,11 @@
-package flyingchess.Main;
+package flyingchess.main;
 
 
-import core.Config.Config;
-import core.Config.XMLConfig;
-import core.Server.SSLServer;
-import core.Server.Server;
-import flyingchess.GameObjects.ObjectManager;
+import core.config.Config;
+import core.config.XMLConfig;
+import core.server.SSLServer;
+import core.server.Server;
+import flyingchess.game.ObjectManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

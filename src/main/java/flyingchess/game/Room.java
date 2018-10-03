@@ -1,8 +1,8 @@
-package flyingchess.GameObjects;
+package flyingchess.game;
 
-import core.DataPack.DataPack;
-import flyingchess.FCDataPack.FCDataPack;
-import flyingchess.FCDataPack.FCDataPackUtil;
+import core.datapack.DataPack;
+import flyingchess.fcdatapack.FCDataPack;
+import flyingchess.fcdatapack.FCDataPackUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

@@ -1,6 +1,6 @@
-package flyingchess.FCDataPack;
+package flyingchess.fcdatapack;
 
-import core.DataPack.DataPack;
+import core.datapack.DataPack;
 
 import java.util.List;
 

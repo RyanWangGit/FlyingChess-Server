@@ -1,4 +1,4 @@
-package flyingchess.GameObjects;
+package flyingchess.game;
 
 /**
  * Created by Ryan on 16/4/27.

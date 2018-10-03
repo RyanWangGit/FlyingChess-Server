@@ -1,6 +1,6 @@
-package flyingchess.PlayerFilter;
+package flyingchess.filters;
 
-import flyingchess.GameObjects.Player;
+import flyingchess.game.Player;
 
 /**
  * Created by Ryan on 16/5/2.

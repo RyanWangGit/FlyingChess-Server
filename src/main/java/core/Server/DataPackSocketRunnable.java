@@ -1,7 +1,7 @@
-package core.Server;
+package core.server;
 
-import core.DataPack.DataPackProcessor;
-import core.DataPack.DataPackTcpSocket;
+import core.datapack.DataPackProcessor;
+import core.datapack.DataPackTcpSocket;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

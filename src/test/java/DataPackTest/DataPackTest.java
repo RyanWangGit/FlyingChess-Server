@@ -2,7 +2,7 @@ package DataPackTest;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import core.DataPack.DataPack;
+import core.datapack.DataPack;
 
 /**
  * Created by Ryan on 16/4/10.

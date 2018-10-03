@@ -1,8 +1,8 @@
-package flyingchess.FCDataPack;
+package flyingchess.fcdatapack;
 
-import flyingchess.GameObjects.ObjectManager;
-import flyingchess.GameObjects.Player;
-import flyingchess.GameObjects.Room;
+import flyingchess.game.ObjectManager;
+import flyingchess.game.Player;
+import flyingchess.game.Room;
 
 import java.util.LinkedList;
 import java.util.List;

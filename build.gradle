@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'application'
 
-mainClassName = 'flyingchess.Main.Main'
+mainClassName = 'flyingchess.main.main'
 
 version = '0.1.0'
 
@@ -17,7 +17,7 @@ jar {
     manifest {
         attributes 'Implementation-Title': 'Flying Chess Server',
                 'Implementation-Version': version,
-                'Main-Class': 'flyingchess.Main.Main'
+                'main-Class': 'flyingchess.main.main'
     }
 	baseName = 'FlyingChess-Server'
 }
@@ -26,7 +26,7 @@ task fatJar(type: Jar) {
     manifest {
         attributes 'Implementation-Title': 'Flying Chess Server',
                 'Implementation-Version': version,
-                'Main-Class': 'flyingchess.Main.Main'
+                'main-Class': 'flyingchess.main.main'
     }
     baseName = project.name + '-with-dependencies'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
