@@ -82,8 +82,8 @@ public class ObjectManager {
                     }
                     finally {
                         logger.info(currentPlayer.toString() + " logged in.");
-                        return currentPlayer;
                     }
+                    return currentPlayer;
                 }
             }
             return null;
