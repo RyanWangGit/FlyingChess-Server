@@ -104,7 +104,7 @@ public class ObjectManager {
             return;
 
         StringBuilder builder = new StringBuilder();
-        builder.append("Player " + player.toString() + " got disconnetd");
+        builder.append("Player " + player.toString() + " got disconnected");
 
         Room playerRoom = player.getRoom();
 
