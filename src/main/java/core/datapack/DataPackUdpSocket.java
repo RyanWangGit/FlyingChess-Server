@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Simple wrapper for udp datagram socket for transmitting data packs in which
@@ -18,7 +19,7 @@ import java.net.InetSocketAddress;
 public class DataPackUdpSocket {
     private Logger logger = LogManager.getLogger(DataPackUdpSocket.class.getName());
     protected DatagramSocket socket = null;
-    protected Gson dataPackGson = new GsonBuilder().setDateFormat("yyyy-MM-dd hh:mm:ss").create();
+    protected Gson dataPackBuilder = new GsonBuilder().setDateFormat("yyyy-MM-dd hh:mm:ss").create();
     protected byte[] inBuf = null;
 
     public DataPackUdpSocket(DatagramSocket socket){
@@ -33,9 +34,10 @@ public class DataPackUdpSocket {
      * @param address The address to which the datapack is sent.
      */
     public void send(DataPack dataPack, InetSocketAddress address) throws IOException {
-        byte[] bytes = dataPackGson.toJson(dataPack, DataPack.class).getBytes();
+        byte[] bytes = dataPackBuilder.toJson(dataPack, DataPack.class).getBytes();
         DatagramPacket packet = new DatagramPacket(bytes, bytes.length, address);
         socket.send(packet);
+        logger.debug("Sending" + packet.toString());
     }
 
     /**
@@ -47,7 +49,7 @@ public class DataPackUdpSocket {
     public DataPack receive() throws IOException {
         DatagramPacket packet = new DatagramPacket(inBuf, inBuf.length);
         socket.receive(packet);
-        return dataPackGson.fromJson(new String(packet.getData(), "utf-8"), DataPack.class);
+        return dataPackBuilder.fromJson(new String(packet.getData(), StandardCharsets.UTF_8), DataPack.class);
     }
 
     /**

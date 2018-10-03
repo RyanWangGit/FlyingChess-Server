@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Simple wrapper for tcp stream socket for transmitting data packs in which
@@ -23,7 +23,7 @@ public class DataPackTcpSocket {
     protected Socket socket = null;
     protected DataInputStream is = null;
     protected DataOutputStream os = null;
-    protected Gson dataPackGson = new GsonBuilder().setDateFormat("yyyy-MM-dd hh:mm:ss").create();
+    protected Gson dataPackBuilder = new GsonBuilder().setDateFormat("yyyy-MM-dd hh:mm:ss").create();
 
     public DataPackTcpSocket(Socket socket) throws IOException{
         this.socket = socket;
@@ -46,7 +46,7 @@ public class DataPackTcpSocket {
         this.is.readFully(bytes);
 
         // parse the datapack and return
-        return dataPackGson.fromJson(new String(bytes, "UTF-8"), DataPack.class);
+        return dataPackBuilder.fromJson(new String(bytes, StandardCharsets.UTF_8), DataPack.class);
     }
 
     /**
@@ -67,7 +67,7 @@ public class DataPackTcpSocket {
      */
     public synchronized void send(DataPack dataPack) throws IOException {
         try{
-            byte[] sendBytes = dataPackGson.toJson(dataPack, DataPack.class).getBytes(Charset.forName("UTF-8"));
+            byte[] sendBytes = dataPackBuilder.toJson(dataPack, DataPack.class).getBytes(StandardCharsets.UTF_8);
             int bytesSize = sendBytes.length;
 
             this.os.writeInt(bytesSize);
