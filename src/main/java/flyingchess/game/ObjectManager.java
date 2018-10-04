@@ -45,8 +45,6 @@ public class ObjectManager {
         DataPack dataPack = new FCDataPack(FCDataPack.A_ROOM_LOOKUP, FCDataPackUtil.getRoomsMessage(this));
         this.broadcastRunnable = new BroadcastRunnable(getAllPlayers(), new RoomSelectingFilter(), dataPack);
         executor.submit(this.broadcastRunnable);
-
-        return;
     }
 
     public boolean registerUser(String userName, String password){
