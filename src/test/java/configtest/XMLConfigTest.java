@@ -1,4 +1,4 @@
-package ConfigTest;
+package configtest;
 
 import core.config.Config;
 import core.config.XMLConfig;
