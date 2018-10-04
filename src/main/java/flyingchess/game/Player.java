@@ -9,7 +9,6 @@ public class Player extends User {
     private boolean isHost = false;
     private DataPackTcpSocket socket = null;
     private int status = 0;
-    private PlayerManager parent = null;
     private Room room = null;
     public static final int ROOM_SELECTING = 0;
     public static final int ROOM_WAITING = 1;
@@ -20,7 +19,6 @@ public class Player extends User {
         super(user);
         this.socket = null;
         this.status = ROOM_SELECTING;
-        this.parent = parent;
     }
 
     public boolean isRobot() { return this.id <= -1 && this.id >= -4; }
