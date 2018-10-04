@@ -282,10 +282,6 @@ public class FCDataPackProcessor implements DataPackProcessor {
         if(processor.socket == null)
             return false;
 
-        if(processor.socket.getInetSocketAddress().equals(this.socket.getInetSocketAddress())){
-            return true;
-        }
-
-        return false;
+        return processor.socket.getInetSocketAddress().equals(this.socket.getInetSocketAddress());
     }
 }
