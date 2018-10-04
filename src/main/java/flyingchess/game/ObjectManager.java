@@ -179,12 +179,10 @@ class PlayerManager {
      * 2 maps to store the player object
      * to provide O(1) look up speed by 2 unique keys
      */
-    private ObjectManager parent = null;
     private Map<Integer, Player> playerMap = null;
 
     PlayerManager(ObjectManager parent){
         this.playerMap = new ConcurrentHashMap<>(100, 0.75f);
-        this.parent = parent;
     }
 
     Player createPlayer(User user){
