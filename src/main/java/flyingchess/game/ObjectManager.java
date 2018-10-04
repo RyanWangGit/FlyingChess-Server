@@ -202,7 +202,7 @@ class PlayerManager {
             this.playerMap.remove(player.getId());
             player.getSocket().close();
         } catch(IOException e){
-
+            logger.warn(e);
         }
     }
 
