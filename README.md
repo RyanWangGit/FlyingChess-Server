@@ -1,4 +1,4 @@
-# FlyingChess - Server [![Build Status](https://travis-ci.org/RyanWangGit/FlyingChess-Server.svg?branch=master)](https://travis-ci.org/RyanWangGit/FlyingChess-Server)
+# FlyingChess - Server [![Build Status](https://travis-ci.org/RyanWangGit/flyingchess-server.svg?branch=master)](https://travis-ci.org/RyanWangGit/flyingchess-server)
 
 A Famous Board Game Backend ([wiki](https://en.wikipedia.org/wiki/Flying_chess)). 
 
